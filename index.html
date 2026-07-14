@@ -1,88 +1,37 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#020407" />
-    <meta name="description" content="An unofficial fan-made interactive cinematic tribute to Optimus Prime." />
-    <title>PRIME // Interactive Tribute</title>
-    <link rel="stylesheet" href="/src/mobile.css" />
-    <link rel="stylesheet" href="/src/cinematic.css" />
-  </head>
-  <body>
-    <div id="app">
-      <canvas id="webgl" aria-label="Interactive 3D Optimus Prime tribute"></canvas>
-      <div class="grain" aria-hidden="true"></div>
-      <div class="vignette" aria-hidden="true"></div>
-      <div class="letterbox" aria-hidden="true"></div>
-      <div class="impact-flash" aria-hidden="true"></div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#010205" />
+  <meta name="description" content="An unofficial fan-made cinematic Optimus Prime tribute." />
+  <title>TRANSFORMERS: ARRIVAL // Fan Tribute</title>
+</head>
+<body>
+  <canvas id="webgl" aria-label="Interactive cinematic robot experience"></canvas>
+  <div class="film-grain"></div><div class="vignette"></div><div class="flash"></div><div class="slash"></div>
 
-      <section class="boot" aria-label="Experience introduction">
-        <div class="boot-scan"></div>
-        <p class="boot-code">DEEP SPACE RELAY // 07-A</p>
-        <h1 class="boot-title">SIGNAL<br />DETECTED</h1>
-        <p class="boot-subtitle">CYBERTRONIAN SIGNATURE APPROACHING</p>
-        <button class="enter-button" type="button"><span>ENTER EXPERIENCE</span><i></i></button>
-        <small>HEADPHONES RECOMMENDED</small>
-      </section>
+  <section class="gate">
+    <p>DEEP SPACE RELAY // UNKNOWN SIGNATURE</p>
+    <h1>ARRIVAL</h1>
+    <button type="button" class="start">INITIATE CONTACT <span></span></button>
+    <small>UNOFFICIAL FAN-MADE TRIBUTE · SOUND DESIGN NOT INCLUDED</small>
+  </section>
 
-      <main class="experience" aria-hidden="true">
-        <header class="top-hud">
-          <div class="identity"><span class="identity-mark">P</span><div><strong>PRIME</strong><small>UNOFFICIAL INTERACTIVE TRIBUTE</small></div></div>
-          <div class="telemetry"><span>SECTOR <b>EARTH</b></span><span>ENERGON <b class="energy-value">84%</b></span><span>LINK <b>STABLE</b></span></div>
-        </header>
+  <main class="experience" aria-hidden="true">
+    <header><b>PRIME</b><span class="chapter">01 // AWAKENING</span><i class="energy">ENERGON 100%</i></header>
+    <div class="reticle"><span></span><span></span><span></span><span></span></div>
+    <section class="copy active" data-scene="eye"><p>SIGNAL LOCKED</p><h2>HE<br>SEES<br>YOU.</h2></section>
+    <section class="copy" data-scene="rise"><p>CYBERTRONIAN COMMANDER</p><h2>A GIANT<br>HAS<br>AWAKENED.</h2></section>
+    <section class="copy" data-scene="step"><p>IMPACT EVENT</p><h2>FEEL<br>THE<br>WEIGHT.</h2></section>
+    <section class="copy" data-scene="matrix"><p>MATRIX PROTOCOL</p><h2>LIGHT<br>OUR DARKEST<br>HOUR.</h2></section>
+    <section class="copy" data-scene="final"><p>AUTOBOTS</p><h2>TILL<br>ALL ARE<br>ONE.</h2></section>
 
-        <aside class="chapter-rail" aria-label="Experience chapters">
-          <button data-scene="arrival" class="active"><span>01</span><b>ARRIVAL</b></button>
-          <button data-scene="transformation"><span>02</span><b>TRANSFORM</b></button>
-          <button data-scene="commander"><span>03</span><b>COMMANDER</b></button>
-          <button data-scene="matrix"><span>04</span><b>MATRIX</b></button>
-        </aside>
-
-        <div class="scene-copy active" data-copy="arrival">
-          <p class="kicker">AUTOBOT COMMAND SIGNAL</p>
-          <h2>FREEDOM<br />IS THE RIGHT<br />OF ALL.</h2>
-          <p class="scene-description">Drag to orbit. Scroll to move through the encounter. Target illuminated components to trigger mechanical responses.</p>
-        </div>
-
-        <div class="scene-copy" data-copy="transformation">
-          <p class="kicker">CONVERSION SEQUENCE</p>
-          <h2>MORE THAN<br />MEETS THE EYE.</h2>
-          <p class="scene-description">Initiate a multi-stage transformation sequence with independent chassis, wheel, armor, head and limb motion.</p>
-        </div>
-
-        <div class="scene-copy" data-copy="commander">
-          <p class="kicker">AUTOBOT COMMANDER</p>
-          <h2>COURAGE<br />BEFORE FEAR.</h2>
-          <p class="scene-description">Prime tracks your movement, scans the field and responds to combat commands in real time.</p>
-        </div>
-
-        <div class="scene-copy" data-copy="matrix">
-          <p class="kicker">MATRIX CHAMBER</p>
-          <h2>LIGHT OUR<br />DARKEST HOUR.</h2>
-          <p class="scene-description">Press and hold Matrix to charge the chamber. Release only after the energy reaches full power.</p>
-        </div>
-
-        <div class="target-label" aria-live="polite">DRAG TO ORBIT</div>
-
-        <div class="action-dock" aria-label="Interactive controls">
-          <button data-action="transform"><span>01</span><b>TRANSFORM</b><small>T</small></button>
-          <button data-action="scan"><span>02</span><b>SCAN</b><small>S</small></button>
-          <button data-action="blaster"><span>03</span><b>ION BLASTER</b><small>F</small></button>
-          <button data-action="matrix"><span>04</span><b>HOLD MATRIX</b><small>M</small></button>
-        </div>
-
-        <div class="status-panel">
-          <p class="status-line">PRIME ONLINE</p>
-          <div class="energy-track"><i></i></div>
-          <div class="status-grid"><span>MODE <b class="mode-value">ROBOT</b></span><span>WEAPON <b class="weapon-value">STOWED</b></span><span>TARGET <b class="target-value">NONE</b></span></div>
-        </div>
-
-        <div class="scroll-hint"><span>SCROLL TO ADVANCE</span><i></i></div>
-        <p class="fan-note">Fan-made concept. Not affiliated with or endorsed by Hasbro or Paramount.</p>
-      </main>
-    </div>
-    <script type="module" src="/src/main.js"></script>
-    <script type="module" src="/src/cinematic.js"></script>
-  </body>
+    <div class="sequence"><button data-jump="0">I</button><button data-jump="1">II</button><button data-jump="2">III</button><button data-jump="3">IV</button><button data-jump="4">V</button></div>
+    <div class="controls"><button data-action="advance">ADVANCE</button><button data-action="matrix">HOLD MATRIX</button><button data-action="slash">ENERGY SLASH</button></div>
+    <p class="hint">SWIPE / SCROLL TO ADVANCE · DRAG TO LOOK AROUND</p>
+    <p class="legal">Fan-made concept. Not affiliated with Hasbro or Paramount.</p>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
 </html>
