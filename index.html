@@ -3,33 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#010205" />
-  <meta name="description" content="An unofficial fan-made cinematic Optimus Prime tribute." />
-  <title>TRANSFORMERS: ARRIVAL // Fan Tribute</title>
+  <meta name="theme-color" content="#000107" />
+  <meta name="description" content="An unofficial fan-made cinematic Optimus Prime arrival experience." />
+  <title>PRIME: THE ARRIVAL // Fan Tribute</title>
 </head>
 <body>
-  <canvas id="webgl" aria-label="Interactive cinematic robot experience"></canvas>
-  <div class="film-grain"></div><div class="vignette"></div><div class="flash"></div><div class="slash"></div>
+  <canvas id="webgl" aria-label="Interactive cinematic Optimus Prime arrival"></canvas>
+  <div class="grain"></div><div class="vignette"></div><div class="chromatic"></div><div class="whiteout"></div>
 
   <section class="gate">
-    <p>DEEP SPACE RELAY // UNKNOWN SIGNATURE</p>
-    <h1>ARRIVAL</h1>
-    <button type="button" class="start">INITIATE CONTACT <span></span></button>
-    <small>UNOFFICIAL FAN-MADE TRIBUTE · SOUND DESIGN NOT INCLUDED</small>
+    <p>ORBITAL DEFENSE NETWORK // SIGNAL 07-A</p>
+    <h1>THE<br>ARRIVAL</h1>
+    <button class="start" type="button"><span>BREACH THE SKY</span><i></i></button>
+    <small>UNOFFICIAL FAN-MADE TRIBUTE · HEADPHONES RECOMMENDED</small>
   </section>
 
   <main class="experience" aria-hidden="true">
-    <header><b>PRIME</b><span class="chapter">01 // AWAKENING</span><i class="energy">ENERGON 100%</i></header>
-    <div class="reticle"><span></span><span></span><span></span><span></span></div>
-    <section class="copy active" data-scene="eye"><p>SIGNAL LOCKED</p><h2>HE<br>SEES<br>YOU.</h2></section>
-    <section class="copy" data-scene="rise"><p>CYBERTRONIAN COMMANDER</p><h2>A GIANT<br>HAS<br>AWAKENED.</h2></section>
-    <section class="copy" data-scene="step"><p>IMPACT EVENT</p><h2>FEEL<br>THE<br>WEIGHT.</h2></section>
-    <section class="copy" data-scene="matrix"><p>MATRIX PROTOCOL</p><h2>LIGHT<br>OUR DARKEST<br>HOUR.</h2></section>
-    <section class="copy" data-scene="final"><p>AUTOBOTS</p><h2>TILL<br>ALL ARE<br>ONE.</h2></section>
+    <div class="sky-status"><b>SPACE BRIDGE</b><span class="status">UNSTABLE</span></div>
+    <div class="timeline"><i></i><span class="progress"></span></div>
+    <div class="chapter"><small>ACT I</small><strong>THE SKY OPENS</strong></div>
+    <div class="mass-readout"><span>ESTIMATED MASS</span><b>6,430 T</b></div>
 
-    <div class="sequence"><button data-jump="0">I</button><button data-jump="1">II</button><button data-jump="2">III</button><button data-jump="3">IV</button><button data-jump="4">V</button></div>
-    <div class="controls"><button data-action="advance">ADVANCE</button><button data-action="matrix">HOLD MATRIX</button><button data-action="slash">ENERGY SLASH</button></div>
-    <p class="hint">SWIPE / SCROLL TO ADVANCE · DRAG TO LOOK AROUND</p>
+    <section class="title-card active" data-scene="0"><p>UNKNOWN ENERGY SIGNATURE</p><h2>THE SKY<br>IS TEARING<br>OPEN.</h2></section>
+    <section class="title-card" data-scene="1"><p>CYBERTRONIAN CONTACT</p><h2>SOMETHING<br>COLOSSAL<br>IS COMING.</h2></section>
+    <section class="title-card" data-scene="2"><p>GROUND IMPACT IMMINENT</p><h2>BRACE<br>FOR<br>IMPACT.</h2></section>
+    <section class="title-card" data-scene="3"><p>MATRIX ENERGY DETECTED</p><h2>LIGHT<br>OUR DARKEST<br>HOUR.</h2></section>
+    <section class="title-card" data-scene="4"><p>AUTOBOT COMMANDER</p><h2>TILL<br>ALL ARE<br>ONE.</h2></section>
+
+    <button class="advance" type="button">ADVANCE SEQUENCE <span>→</span></button>
+    <button class="matrix-trigger" type="button">HOLD TO AWAKEN MATRIX</button>
+    <p class="hint">SCROLL / SWIPE TO ADVANCE · DRAG TO ORBIT</p>
     <p class="legal">Fan-made concept. Not affiliated with Hasbro or Paramount.</p>
   </main>
   <script type="module" src="/src/main.js"></script>
