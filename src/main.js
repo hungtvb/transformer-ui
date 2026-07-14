@@ -1,183 +1,227 @@
 import './style.css';
-import './interactions.css';
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const isMobile = window.innerWidth < 768;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const mobile = innerWidth < 768;
 const canvas = document.querySelector('#webgl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.25 : 1.75));
-renderer.setSize(window.innerWidth, window.innerHeight);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, alpha: true, powerPreference: 'high-performance' });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.2 : 1.7));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.18;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x03050a, 0.048);
-const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 120);
-camera.position.set(0, 0.25, 10);
+scene.fog = new THREE.FogExp2(0x05070d, 0.045);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 150);
+camera.position.set(0, 0.3, 10.5);
 
 const world = new THREE.Group();
-const mech = new THREE.Group();
-const shards = new THREE.Group();
-const energySystem = new THREE.Group();
-scene.add(world, shards, energySystem);
-world.add(mech);
-mech.position.set(2.35, -0.45, 0);
-mech.rotation.y = -0.3;
+const prime = new THREE.Group();
+const atmosphere = new THREE.Group();
+scene.add(world, atmosphere);
+world.add(prime);
+prime.position.set(2.45, -0.5, 0);
+prime.rotation.y = -0.3;
 
-const metal = new THREE.MeshStandardMaterial({ color: 0x192334, metalness: 0.94, roughness: 0.22 });
-const darkMetal = new THREE.MeshStandardMaterial({ color: 0x050911, metalness: 0.9, roughness: 0.34 });
-const blueMetal = new THREE.MeshStandardMaterial({ color: 0x124cc0, metalness: 0.92, roughness: 0.18 });
-const glow = new THREE.MeshStandardMaterial({ color: 0x8bf2ff, emissive: 0x008dff, emissiveIntensity: 5, metalness: 0.2, roughness: 0.08 });
-const hotGlow = new THREE.MeshBasicMaterial({ color: 0xbff8ff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false });
+const mat = {
+  red: new THREE.MeshStandardMaterial({ color: 0xb91f25, metalness: 0.9, roughness: 0.22 }),
+  redBright: new THREE.MeshStandardMaterial({ color: 0xe53a33, metalness: 0.86, roughness: 0.18 }),
+  blue: new THREE.MeshStandardMaterial({ color: 0x174b9d, metalness: 0.92, roughness: 0.2 }),
+  silver: new THREE.MeshStandardMaterial({ color: 0xaeb9c7, metalness: 0.95, roughness: 0.17 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x090d14, metalness: 0.9, roughness: 0.3 }),
+  tire: new THREE.MeshStandardMaterial({ color: 0x06070a, metalness: 0.15, roughness: 0.78 }),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0x7acfff, emissive: 0x114f88, emissiveIntensity: 1.7, metalness: 0.1, roughness: 0.08, transparent: true, opacity: 0.74 }),
+  glow: new THREE.MeshStandardMaterial({ color: 0xb8f3ff, emissive: 0x1a9cff, emissiveIntensity: 5, metalness: 0.18, roughness: 0.06 }),
+  energy: new THREE.MeshBasicMaterial({ color: 0x8be9ff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }),
+};
 
-const interactiveMeshes = [];
+const interactive = [];
 function register(mesh, label, action) {
   mesh.userData.interactive = true;
   mesh.userData.label = label;
   mesh.userData.action = action;
-  interactiveMeshes.push(mesh);
+  interactive.push(mesh);
   return mesh;
 }
-function box(parent, size, position, material, rotation = [0, 0, 0]) {
+function box(parent, size, pos, material, rot = [0, 0, 0]) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
-  mesh.position.set(...position); mesh.rotation.set(...rotation); parent.add(mesh); return mesh;
+  mesh.position.set(...pos); mesh.rotation.set(...rot); parent.add(mesh); return mesh;
 }
-function cylinder(parent, rt, rb, h, position, material, rotation = [0, 0, 0], segments = 10) {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, segments), material);
-  mesh.position.set(...position); mesh.rotation.set(...rotation); parent.add(mesh); return mesh;
+function cyl(parent, rt, rb, h, pos, material, rot = [0, 0, 0], seg = 16) {
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), material);
+  mesh.position.set(...pos); mesh.rotation.set(...rot); parent.add(mesh); return mesh;
+}
+function wheel(parent, pos, scale = 1) {
+  const group = new THREE.Group(); group.position.set(...pos); parent.add(group);
+  const tire = new THREE.Mesh(new THREE.CylinderGeometry(.36 * scale, .36 * scale, .22 * scale, 20), mat.tire);
+  tire.rotation.z = Math.PI / 2; group.add(tire);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(.18 * scale, .18 * scale, .24 * scale, 12), mat.silver);
+  hub.rotation.z = Math.PI / 2; group.add(hub);
+  return group;
 }
 
-const torso = new THREE.Group(); mech.add(torso);
-box(torso, [2.25, 1.75, 1.15], [0, 0.75, 0], metal);
-const shoulderBar = box(torso, [2.65, 0.42, 1.4], [0, 1.43, 0], blueMetal);
-box(torso, [1.75, 0.5, 1.32], [0, 0.2, 0.03], darkMetal);
-const chestL = box(torso, [0.72, 1.2, 0.28], [-0.56, 0.77, 0.72], blueMetal, [0.03, 0.05, -0.18]);
-const chestR = box(torso, [0.72, 1.2, 0.28], [0.56, 0.77, 0.72], blueMetal, [0.03, -0.05, 0.18]);
+// Torso / truck cab
+const torso = new THREE.Group(); prime.add(torso);
+const torsoCore = box(torso, [2.25, 1.65, 1.12], [0, .72, 0], mat.red);
+const chestLeft = register(box(torso, [.86, 1.02, .18], [-.52, .82, .66], mat.glass, [0, .06, -.05]), 'LEFT CAB WINDOW', 'scan');
+const chestRight = register(box(torso, [.86, 1.02, .18], [.52, .82, .66], mat.glass, [0, -.06, .05]), 'RIGHT CAB WINDOW', 'scan');
+const grille = register(box(torso, [1.35, .38, .17], [0, .12, .68], mat.silver), 'FRONT GRILLE', 'transform');
+for (let i = -2; i <= 2; i++) box(grille, [.08, .25, .05], [i * .22, 0, .12], mat.dark);
+const bumper = box(torso, [1.65, .18, .24], [0, -.12, .69], mat.silver);
+const shoulderLine = box(torso, [2.75, .34, 1.28], [0, 1.48, 0], mat.redBright);
 
-const corePivot = new THREE.Group(); corePivot.position.set(0, 0.72, 0.72); torso.add(corePivot);
-const core = register(new THREE.Mesh(new THREE.OctahedronGeometry(0.38, 0), glow), 'NEURAL CORE', 'charge');
-core.rotation.z = Math.PI / 4; corePivot.add(core);
-const coreRing = new THREE.Mesh(new THREE.TorusGeometry(0.59, 0.035, 10, 56), glow); corePivot.add(coreRing);
-const coreHalo = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.9, 64), hotGlow); coreHalo.position.z = -0.06; corePivot.add(coreHalo);
+const matrixPivot = new THREE.Group(); matrixPivot.position.set(0, .55, .72); torso.add(matrixPivot);
+const matrix = register(new THREE.Mesh(new THREE.OctahedronGeometry(.28, 0), mat.glow), 'MATRIX CHAMBER', 'matrix');
+matrix.rotation.z = Math.PI / 4; matrixPivot.add(matrix);
+const matrixRing = new THREE.Mesh(new THREE.TorusGeometry(.48, .028, 10, 52), mat.glow); matrixPivot.add(matrixRing);
 
-const head = new THREE.Group(); head.position.set(0, 2.04, 0.02); mech.add(head);
-box(head, [0.92, 0.74, 0.8], [0, 0, 0], metal);
-box(head, [1.02, 0.22, 0.84], [0, 0.2, 0.01], blueMetal);
-const visor = register(box(head, [0.55, 0.12, 0.09], [0, 0.03, 0.43], glow), 'VISION ARRAY', 'scan');
-box(head, [0.2, 0.48, 0.26], [-0.53, 0.02, 0], darkMetal, [0, 0, -0.18]);
-box(head, [0.2, 0.48, 0.26], [0.53, 0.02, 0], darkMetal, [0, 0, 0.18]);
-const antenna = box(head, [0.13, 0.64, 0.14], [0, 0.54, 0], blueMetal);
+// Head and faceplate
+const head = new THREE.Group(); head.position.set(0, 2.08, .02); prime.add(head);
+box(head, [.78, .66, .72], [0, 0, 0], mat.blue);
+const helmet = box(head, [.92, .24, .78], [0, .26, 0], mat.blue);
+const faceplate = register(box(head, [.5, .36, .12], [0, -.08, .43], mat.silver), 'FACEPLATE', 'scan');
+const eyes = register(box(head, [.45, .08, .08], [0, .12, .44], mat.glow), 'OPTIC ARRAY', 'scan');
+const earL = box(head, [.16, .48, .24], [-.5, .02, 0], mat.blue, [0, 0, -.1]);
+const earR = box(head, [.16, .48, .24], [.5, .02, 0], mat.blue, [0, 0, .1]);
+const crest = box(head, [.12, .56, .12], [0, .58, 0], mat.silver);
 
+// Arms
 const leftArm = new THREE.Group(); const rightArm = new THREE.Group();
-leftArm.position.set(-1.65, 1.18, 0); rightArm.position.set(1.65, 1.18, 0); mech.add(leftArm, rightArm);
-[leftArm, rightArm].forEach((arm, i) => {
-  const side = i === 0 ? -1 : 1;
-  register(box(arm, [0.9, 0.72, 1.05], [0, 0, 0], blueMetal, [0, 0, side * -0.08]), side < 0 ? 'LEFT ARM' : 'RIGHT ARM', side < 0 ? 'guard' : 'strike');
-  cylinder(arm, 0.38, 0.38, 1.45, [side * 0.05, -1.02, 0], metal, [0, 0, side * 0.12]);
-  box(arm, [0.58, 0.72, 0.64], [side * 0.12, -1.85, 0], darkMetal, [0, 0, side * 0.08]);
-  box(arm, [0.18, 0.9, 0.22], [side * 0.44, -0.88, 0.4], glow, [0, 0, side * 0.1]);
-});
-
-cylinder(mech, 0.7, 0.82, 0.55, [0, -0.38, 0], darkMetal, [0, 0, 0], 8);
-const hip = box(mech, [1.5, 0.5, 0.9], [0, -0.76, 0], blueMetal);
-const legL = new THREE.Group(); const legR = new THREE.Group();
-legL.position.set(-0.62, -1.08, 0); legR.position.set(0.62, -1.08, 0); mech.add(legL, legR);
-[legL, legR].forEach((leg, i) => {
-  const side = i === 0 ? -1 : 1;
-  box(leg, [0.72, 1.45, 0.88], [0, -0.55, 0], metal, [0, 0, side * 0.04]);
-  box(leg, [0.84, 0.64, 1.02], [0, -1.5, 0.05], blueMetal, [0, 0, side * 0.03]);
-  box(leg, [0.86, 1.35, 0.96], [0, -2.45, 0], darkMetal, [0, 0, side * -0.03]);
-  box(leg, [0.95, 0.42, 1.5], [0, -3.2, 0.28], metal);
-  box(leg, [0.12, 0.9, 0.18], [side * 0.3, -2.35, 0.51], glow);
-});
-const finL = box(mech, [0.25, 1.65, 0.5], [-1.18, 1.0, -0.54], darkMetal, [0.18, 0.05, -0.26]);
-const finR = box(mech, [0.25, 1.65, 0.5], [1.18, 1.0, -0.54], darkMetal, [0.18, -0.05, 0.26]);
-
-for (let i = 0; i < (isMobile ? 24 : 52); i++) {
-  const geometry = i % 3 === 0 ? new THREE.OctahedronGeometry(THREE.MathUtils.randFloat(0.04, 0.14), 0) : new THREE.BoxGeometry(THREE.MathUtils.randFloat(0.04, 0.2), THREE.MathUtils.randFloat(0.12, 0.5), THREE.MathUtils.randFloat(0.04, 0.15));
-  const shard = new THREE.Mesh(geometry, i % 6 === 0 ? glow : metal);
-  const angle = Math.random() * Math.PI * 2; const radius = THREE.MathUtils.randFloat(3, 8);
-  shard.position.set(Math.cos(angle) * radius + 1.2, THREE.MathUtils.randFloat(-4.8, 4.8), Math.sin(angle) * radius - 1.8);
-  shard.userData = { speed: THREE.MathUtils.randFloat(0.15, 0.7), baseY: shard.position.y, phase: Math.random() * 10 };
-  shards.add(shard);
+leftArm.position.set(-1.58, 1.2, 0); rightArm.position.set(1.58, 1.2, 0); prime.add(leftArm, rightArm);
+function buildArm(arm, side) {
+  const shoulder = register(box(arm, [.86, .72, 1.02], [0, 0, 0], mat.redBright, [0, 0, side * -.08]), side < 0 ? 'LEFT SHOULDER' : 'RIGHT SHOULDER', side < 0 ? 'guard' : 'blaster');
+  const upper = box(arm, [.52, 1.0, .62], [side * .04, -.8, 0], mat.silver, [0, 0, side * .08]);
+  const fore = box(arm, [.62, 1.08, .72], [side * .1, -1.72, .03], mat.blue, [0, 0, side * -.05]);
+  const fist = box(arm, [.55, .5, .66], [side * .12, -2.42, .05], mat.dark);
+  const wheelPart = wheel(arm, [side * .4, -.72, -.48], .8);
+  arm.userData = { shoulder, upper, fore, fist, wheel: wheelPart, side };
 }
-const particleCount = isMobile ? 550 : 1200;
-const positions = new Float32Array(particleCount * 3);
-for (let i = 0; i < particleCount; i++) { positions[i*3]=THREE.MathUtils.randFloatSpread(28); positions[i*3+1]=THREE.MathUtils.randFloatSpread(18); positions[i*3+2]=THREE.MathUtils.randFloat(-14,2); }
-const particleGeometry = new THREE.BufferGeometry(); particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-const particles = new THREE.Points(particleGeometry, new THREE.PointsMaterial({ color: 0x62ddff, size: 0.027, transparent: true, opacity: 0.62, blending: THREE.AdditiveBlending, depthWrite: false })); scene.add(particles);
-for (let i = 0; i < (isMobile ? 2 : 5); i++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2+i*.55,.012,6,90), hotGlow.clone()); ring.material.opacity=.11-i*.012; ring.rotation.set(Math.PI/2+i*.17,i*.34,0); ring.position.set(2.2,-.2,-1.5-i*.4); ring.userData.speed=.18+i*.05; energySystem.add(ring); }
+buildArm(leftArm, -1); buildArm(rightArm, 1);
 
-scene.add(new THREE.HemisphereLight(0x8ed8ff, 0x03050a, 1.15));
-const keyLight = new THREE.DirectionalLight(0x9eeaff, 5.6); keyLight.position.set(5,7,7); scene.add(keyLight);
-const rimLight = new THREE.DirectionalLight(0x245cff, 7); rimLight.position.set(-7,2,-4); scene.add(rimLight);
-const coreLight = new THREE.PointLight(0x43ddff, 32, 9, 2); coreLight.position.set(2.35,.35,2.2); scene.add(coreLight);
+// Ion blaster
+const blaster = new THREE.Group(); blaster.position.set(.35, -1.75, .42); rightArm.add(blaster);
+const barrel = register(cyl(blaster, .12, .15, 1.55, [0, -.35, 0], mat.dark, [0, 0, 0], 14), 'ION BLASTER', 'blaster');
+const muzzle = cyl(blaster, .18, .18, .18, [0, -1.15, 0], mat.glow, [0, 0, 0], 16);
+
+// Waist and legs
+const waist = new THREE.Group(); waist.position.set(0, -.52, 0); prime.add(waist);
+box(waist, [1.5, .48, .88], [0, 0, 0], mat.blue);
+box(waist, [.58, .48, .98], [0, -.28, .02], mat.silver);
+const legL = new THREE.Group(); const legR = new THREE.Group();
+legL.position.set(-.58, -1.08, 0); legR.position.set(.58, -1.08, 0); prime.add(legL, legR);
+function buildLeg(leg, side) {
+  const thigh = box(leg, [.64, 1.25, .78], [0, -.5, 0], mat.silver, [0, 0, side * .03]);
+  const knee = box(leg, [.75, .5, .86], [0, -1.35, .06], mat.blue);
+  const shin = box(leg, [.82, 1.42, .9], [0, -2.28, 0], mat.blue);
+  const shinPlate = box(leg, [.52, .9, .12], [0, -2.22, .5], mat.silver);
+  const foot = box(leg, [.92, .4, 1.38], [0, -3.16, .24], mat.dark);
+  const wheelPart = wheel(leg, [side * .5, -2.4, -.48], .9);
+  leg.userData = { thigh, knee, shin, shinPlate, foot, wheel: wheelPart, side };
+}
+buildLeg(legL, -1); buildLeg(legR, 1);
+
+// Exhaust stacks and rear armor
+const exhaustL = cyl(prime, .1, .13, 2.15, [-1.12, .95, -.58], mat.silver, [0, 0, 0], 12);
+const exhaustR = cyl(prime, .1, .13, 2.15, [1.12, .95, -.58], mat.silver, [0, 0, 0], 12);
+const rearL = box(prime, [.26, 1.55, .48], [-1.28, .95, -.56], mat.blue, [.12, .05, -.18]);
+const rearR = box(prime, [.26, 1.55, .48], [1.28, .95, -.56], mat.blue, [.12, -.05, .18]);
+
+// Atmosphere
+for (let i = 0; i < (mobile ? 26 : 58); i++) {
+  const geo = i % 3 ? new THREE.BoxGeometry(THREE.MathUtils.randFloat(.04, .18), THREE.MathUtils.randFloat(.1, .46), THREE.MathUtils.randFloat(.04, .14)) : new THREE.OctahedronGeometry(THREE.MathUtils.randFloat(.04, .13), 0);
+  const shard = new THREE.Mesh(geo, i % 6 === 0 ? mat.glow : mat.dark);
+  const a = Math.random() * Math.PI * 2; const r = THREE.MathUtils.randFloat(3.4, 8.5);
+  shard.position.set(Math.cos(a) * r + 1.2, THREE.MathUtils.randFloat(-4.8, 5), Math.sin(a) * r - 1.8);
+  shard.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+  shard.userData = { speed: THREE.MathUtils.randFloat(.14, .65), baseY: shard.position.y, phase: Math.random() * 8 };
+  atmosphere.add(shard);
+}
+const pCount = mobile ? 520 : 1250;
+const p = new Float32Array(pCount * 3);
+for (let i = 0; i < pCount; i++) { p[i*3]=THREE.MathUtils.randFloatSpread(28); p[i*3+1]=THREE.MathUtils.randFloatSpread(18); p[i*3+2]=THREE.MathUtils.randFloat(-15,2); }
+const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(p,3));
+const particles = new THREE.Points(pg,new THREE.PointsMaterial({color:0x6edcff,size:.026,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false}));scene.add(particles);
+
+scene.add(new THREE.HemisphereLight(0x9bdcff, 0x03050a, 1.1));
+const key = new THREE.DirectionalLight(0xa8e5ff, 5.4); key.position.set(5,7,8); scene.add(key);
+const redRim = new THREE.DirectionalLight(0xff3434, 5.2); redRim.position.set(-6,2,-4); scene.add(redRim);
+const blueRim = new THREE.DirectionalLight(0x2e6fff, 6.5); blueRim.position.set(6,1,-5); scene.add(blueRim);
+const coreLight = new THREE.PointLight(0x4bdcff, 30, 9, 2); coreLight.position.set(2.45,.1,2.1); scene.add(coreLight);
 
 const pointer = new THREE.Vector2(); const raycaster = new THREE.Raycaster();
-let hovered = null; let dragging = false; let dragX = 0; let dragY = 0; let userRotationY = 0; let userRotationX = 0; let charge = 34;
-const hint = document.querySelector('.interaction-hint');
-const status = document.querySelector('.live-status');
-const meter = document.querySelector('.charge-fill');
-function setStatus(text) { if (status) status.textContent = text; }
-function updateCharge(amount) { charge = Math.max(0, Math.min(100, charge + amount)); if (meter) meter.style.width = `${charge}%`; document.documentElement.style.setProperty('--charge', charge/100); }
-function pulseCore(power = 1) { if (reduceMotion) return; updateCharge(10*power); gsap.timeline().to(corePivot.scale,{x:1.5+.3*power,y:1.5+.3*power,z:1.5+.3*power,duration:.16}).to(corePivot.scale,{x:1,y:1,z:1,duration:.65,ease:'elastic.out(1,.35)'}); gsap.fromTo('.reactor-flash',{opacity:.8},{opacity:0,duration:.55}); }
-function executeAction(action) {
-  const actions = {
-    charge: () => { pulseCore(1.4); setStatus('CORE OVERCHARGE'); },
-    scan: () => { gsap.timeline().to(head.rotation,{y:-.55,duration:.25}).to(head.rotation,{y:.55,duration:.5}).to(head.rotation,{y:0,duration:.3}); gsap.fromTo('.scan-sweep',{xPercent:-120,opacity:1},{xPercent:120,opacity:0,duration:1.1}); setStatus('AREA SCAN COMPLETE'); },
-    strike: () => { gsap.timeline().to(rightArm.rotation,{x:-1.15,z:.85,duration:.18}).to(rightArm.rotation,{x:0,z:0,duration:.55,ease:'back.out(2)'}); pulseCore(.5); setStatus('KINETIC STRIKE'); },
-    guard: () => { gsap.timeline().to(leftArm.rotation,{x:.7,z:-1.05,duration:.22}).to(leftArm.rotation,{x:0,z:0,duration:.7,ease:'power3.out'}); setStatus('DEFENSE MATRIX'); },
-  }; actions[action]?.();
+let dragging=false, dragX=0, dragY=0, userRotY=0, userRotX=0, hovered=null, truckMode=false, energy=48;
+const statusText=document.querySelector('.status-text'); const targetLabel=document.querySelector('.target-label'); const meter=document.querySelector('.energy-meter span');
+function setStatus(text){if(statusText)statusText.textContent=text}
+function setEnergy(value){energy=Math.max(0,Math.min(100,value));if(meter)meter.style.width=`${energy}%`}
+function flash(power=1){if(reduceMotion)return;gsap.fromTo('.energy-flash',{opacity:.75*power},{opacity:0,duration:.7});gsap.timeline().to(matrixPivot.scale,{x:1.5+.25*power,y:1.5+.25*power,z:1.5+.25*power,duration:.16}).to(matrixPivot.scale,{x:1,y:1,z:1,duration:.7,ease:'elastic.out(1,.35)'});setEnergy(energy+12*power)}
+
+function transformPrime(force){
+  const next=typeof force==='boolean'?force:!truckMode;truckMode=next;setStatus(next?'TRUCK MODE':'ROBOT MODE');
+  const t=gsap.timeline({defaults:{duration:.72,ease:'power3.inOut'}});
+  if(next){
+    t.to(head.position,{y:.72,z:-.15},0).to(head.scale,{x:.68,y:.68,z:.68},0)
+      .to(leftArm.rotation,{x:1.32,z:-1.15,y:.18},0).to(rightArm.rotation,{x:1.32,z:1.15,y:-.18},0)
+      .to(leftArm.position,{x:-1.05,y:.9,z:.2},0).to(rightArm.position,{x:1.05,y:.9,z:.2},0)
+      .to(legL.rotation,{x:-1.32,z:.08},.08).to(legR.rotation,{x:-1.32,z:-.08},.08)
+      .to(legL.position,{x:-.48,y:-.05,z:-.45},.08).to(legR.position,{x:.48,y:-.05,z:-.45},.08)
+      .to(waist.rotation,{x:-1.15},.08).to(waist.position,{y:-.15,z:-.6},.08)
+      .to([chestLeft.rotation,chestRight.rotation],{y:0,z:0},.12)
+      .to(prime.rotation,{x:-.12,y:.08,z:0},0).to(prime.position,{x:1.8,y:-.45,z:-.8},0)
+      .to(camera.position,{z:9.2,y:.8},0).call(()=>flash(.8),null,.35);
+  }else{
+    t.to(head.position,{y:2.08,z:.02},0).to(head.scale,{x:1,y:1,z:1},0)
+      .to([leftArm.rotation,rightArm.rotation,legL.rotation,legR.rotation],{x:0,y:0,z:0},0)
+      .to(leftArm.position,{x:-1.58,y:1.2,z:0},0).to(rightArm.position,{x:1.58,y:1.2,z:0},0)
+      .to(legL.position,{x:-.58,y:-1.08,z:0},0).to(legR.position,{x:.58,y:-1.08,z:0},0)
+      .to(waist.rotation,{x:0},0).to(waist.position,{y:-.52,z:0},0)
+      .to(prime.rotation,{x:0,y:-.3,z:0},0).to(prime.position,{x:2.45,y:-.5,z:0},0)
+      .to(camera.position,{z:10.5,y:.3},0).call(()=>flash(.8),null,.35);
+  }
 }
-function updatePointer(e) { pointer.x = e.clientX/innerWidth*2-1; pointer.y = -(e.clientY/innerHeight)*2+1; }
-canvas.style.pointerEvents = 'auto';
-canvas.addEventListener('pointermove', e => {
-  updatePointer(e);
-  if (dragging) { userRotationY += (e.clientX-dragX)*.006; userRotationX = THREE.MathUtils.clamp(userRotationX+(e.clientY-dragY)*.004,-.35,.35); dragX=e.clientX; dragY=e.clientY; return; }
-  raycaster.setFromCamera(pointer,camera); const hit = raycaster.intersectObjects(interactiveMeshes,false)[0]?.object || null;
-  if (hit !== hovered) { if (hovered) gsap.to(hovered.scale,{x:1,y:1,z:1,duration:.2}); hovered=hit; canvas.classList.toggle('is-targeting',!!hit); if (hit) { gsap.to(hit.scale,{x:1.15,y:1.15,z:1.15,duration:.2}); hint.textContent=`CLICK // ${hit.userData.label}`; } else hint.textContent='DRAG TO ROTATE // CLICK COMPONENTS'; }
-});
-canvas.addEventListener('pointerdown', e => { dragging=true; dragX=e.clientX; dragY=e.clientY; canvas.setPointerCapture(e.pointerId); canvas.classList.add('is-dragging'); });
-canvas.addEventListener('pointerup', e => { dragging=false; canvas.releasePointerCapture(e.pointerId); canvas.classList.remove('is-dragging'); if (hovered) executeAction(hovered.userData.action); });
+function scan(){gsap.timeline().to(head.rotation,{y:-.52,duration:.22}).to(head.rotation,{y:.52,duration:.48}).to(head.rotation,{y:0,duration:.28});gsap.fromTo('.scan-sweep',{xPercent:-140,opacity:1},{xPercent:520,opacity:0,duration:1.15});setStatus('BATTLEFIELD SCAN');setEnergy(energy+5)}
+function blasterShot(){gsap.timeline().to(rightArm.rotation,{x:-1.08,z:.78,duration:.2}).to(muzzle.scale,{x:2.4,y:2.4,z:2.4,duration:.08,yoyo:true,repeat:1},.16).to(rightArm.rotation,{x:0,z:0,duration:.55,ease:'back.out(2)'});flash(.45);setStatus('ION BLASTER FIRED');setEnergy(energy-12)}
+function matrixPulse(){gsap.timeline().to(chestLeft.rotation,{y:-.72,z:-.28,duration:.35}).to(chestRight.rotation,{y:.72,z:.28,duration:.35},0).to(matrixRing.rotation,{z:Math.PI*5,duration:1,ease:'none'},0).to(chestLeft.rotation,{y:.06,z:-.05,duration:.55},.75).to(chestRight.rotation,{y:-.06,z:.05,duration:.55},.75);flash(1.5);setStatus('MATRIX AWAKENED')}
+function guard(){gsap.timeline().to(leftArm.rotation,{x:.65,z:-1.0,duration:.22}).to(leftArm.rotation,{x:0,z:0,duration:.65});setStatus('DEFENSIVE STANCE')}
+function action(name){({transform:()=>transformPrime(),scan,blaster:blasterShot,matrix:matrixPulse,guard}[name]||(()=>{}))()}
 
-const modeButtons = document.querySelectorAll('[data-mode]');
-modeButtons.forEach(btn => btn.addEventListener('click', () => {
-  modeButtons.forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const mode=btn.dataset.mode;
-  if(mode==='combat'){ glow.emissive.setHex(0xff3b70); coreLight.color.setHex(0xff1f5a); gsap.to([finL.rotation,finR.rotation],{z:(i)=>i?1:-1,duration:.45}); setStatus('COMBAT MODE'); }
-  else if(mode==='analysis'){ glow.emissive.setHex(0x00c8ff); coreLight.color.setHex(0x43ddff); gsap.to([finL.rotation,finR.rotation],{z:(i)=>i?.78:-.78,duration:.45}); setStatus('ANALYSIS MODE'); }
-  else { glow.emissive.setHex(0x7d4dff); coreLight.color.setHex(0x9b6cff); gsap.to(mech.rotation,{z:.08,duration:.45,yoyo:true,repeat:1}); setStatus('CREATIVE MODE'); }
-  pulseCore(.8);
-}));
+document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',()=>action(el.dataset.action)));
+function updatePointer(e){pointer.x=e.clientX/innerWidth*2-1;pointer.y=-(e.clientY/innerHeight)*2+1}
+canvas.addEventListener('pointerdown',e=>{dragging=true;dragX=e.clientX;dragY=e.clientY;canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointerup',e=>{dragging=false;canvas.releasePointerCapture(e.pointerId);raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(interactive,false)[0];if(hit)action(hit.object.userData.action)});
+canvas.addEventListener('pointermove',e=>{updatePointer(e);if(dragging){userRotY+=(e.clientX-dragX)*.006;userRotX=THREE.MathUtils.clamp(userRotX+(e.clientY-dragY)*.004,-.35,.35);dragX=e.clientX;dragY=e.clientY;return}raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(interactive,false)[0];if(hit?.object!==hovered){if(hovered)gsap.to(hovered.scale,{x:1,y:1,z:1,duration:.2});hovered=hit?.object||null;if(hovered){gsap.to(hovered.scale,{x:1.08,y:1.08,z:1.08,duration:.2});targetLabel.textContent=`TARGET // ${hovered.userData.label}`;canvas.style.cursor='pointer'}else{targetLabel.textContent='DRAG TO ROTATE // CLICK ARMOR';canvas.style.cursor='grab'}}});
+canvas.addEventListener('pointerleave',()=>{dragging=false;if(hovered)gsap.to(hovered.scale,{x:1,y:1,z:1,duration:.2});hovered=null});
 
-document.querySelector('.charge-button')?.addEventListener('click',()=>pulseCore(1.7));
-const form=document.querySelector('.command-form'); const input=document.querySelector('.command-input'); const log=document.querySelector('.command-log');
-const responses={scan:'Scanning environment. No hostile intent detected.',transform:'Transformation protocol synchronized.',create:'Creative forge online. Describe what should be built.',hello:'Neural link established. Hello, operator.'};
-form?.addEventListener('submit',e=>{ e.preventDefault(); const value=input.value.trim(); if(!value)return; const key=Object.keys(responses).find(k=>value.toLowerCase().includes(k)); const response=responses[key]||`Command received: “${value}”. Reconfiguring systems now.`; log.innerHTML+=`<div><b>YOU</b><span>${value.replace(/[<>]/g,'')}</span></div><div class="ai"><b>GPT</b><span>${response}</span></div>`; log.scrollTop=log.scrollHeight; input.value=''; pulseCore(.9); setStatus('COMMAND EXECUTED'); if(key==='transform') gsap.to(mech.rotation,{y:mech.rotation.y+Math.PI*2,duration:1.4,ease:'power3.inOut'}); if(key==='scan') executeAction('scan'); });
+const log=document.querySelector('.command-log');const form=document.querySelector('.command-form');const input=document.querySelector('#command-input');
+function addLog(role,text){const row=document.createElement('div');row.className=role==='YOU'?'user-message':'system-message';row.innerHTML=`<b>${role}</b><span>${text}</span>`;log.appendChild(row);log.scrollTop=log.scrollHeight}
+form.addEventListener('submit',e=>{e.preventDefault();const value=input.value.trim();if(!value)return;addLog('YOU',value);input.value='';const q=value.toLowerCase();let reply='Command acknowledged.';if(q.includes('transform')||q.includes('truck')||q.includes('roll out')){transformPrime();reply=truckMode?'Truck configuration engaged. Autobots, roll out.':'Robot configuration restored.'}else if(q.includes('scan')){scan();reply='Scanning terrain and identifying threats.'}else if(q.includes('matrix')){matrixPulse();reply='The Matrix chamber is responding.'}else if(q.includes('blast')||q.includes('fire')){blasterShot();reply='Ion blaster discharged.'}else if(q.includes('guard')||q.includes('defend')){guard();reply='Defensive stance engaged.'}else if(q.includes('hello')||q.includes('prime')){flash(.5);reply='I am Optimus Prime. Your command channel is secure.'}setTimeout(()=>addLog('PRIME',reply),260)});
 
-if (!reduceMotion) {
-  const tl=gsap.timeline({scrollTrigger:{trigger:'main',start:'top top',end:'bottom bottom',scrub:1.1}});
-  tl.to(mech.position,{x:2.9,y:-.9,z:-1.5,duration:1},0).to(chestL.rotation,{y:-.72,z:-.4,duration:.5},.2).to(chestR.rotation,{y:.72,z:.4,duration:.5},.2).to(finL.rotation,{z:-.78,y:-.3,duration:.55},.25).to(finR.rotation,{z:.78,y:.3,duration:.55},.25).to(mech.position,{x:-2.6,y:-.2,z:-2.4,duration:1},1).to(hip.rotation,{y:Math.PI*.45,duration:.6},1).to(coreRing.rotation,{z:Math.PI*7,duration:1},1).to(mech.position,{x:2.15,y:-1.65,z:-4,duration:1},2).to(chestL.rotation,{y:.05,z:-.18,duration:.8},2).to(chestR.rotation,{y:-.05,z:.18,duration:.8},2);
+if(!reduceMotion){
+  gsap.from('.hero-copy > *',{opacity:0,y:34,duration:1,stagger:.1,ease:'power3.out',delay:.2});
+  gsap.from('.site-header',{y:-90,opacity:0,duration:1,ease:'power3.out'});
+  gsap.utils.toArray('.reveal').forEach(el=>gsap.fromTo(el,{opacity:0,y:65,rotateX:7},{opacity:1,y:0,rotateX:0,duration:1.05,ease:'power4.out',scrollTrigger:{trigger:el,start:'top 87%',once:true}}));
+  const scrollTl=gsap.timeline({scrollTrigger:{trigger:'main',start:'top top',end:'bottom bottom',scrub:1.15}});
+  scrollTl.to(prime.rotation,{y:.45,x:-.06,duration:1},0).to(prime.position,{x:2.8,y:-.85,z:-1.35,duration:1},0)
+    .to(chestLeft.rotation,{y:-.55,z:-.22,duration:.55},.18).to(chestRight.rotation,{y:.55,z:.22,duration:.55},.18)
+    .to(head.rotation,{y:-.35,duration:.4},.22).to([rearL.rotation,rearR.rotation],{z:0,duration:.5},.22)
+    .to(prime.rotation,{y:-.85,x:.08,duration:1.1},1).to(prime.position,{x:-2.55,y:-.25,z:-2.2,duration:1.1},1)
+    .to(camera.position,{x:-.4,y:.7,z:7.8,duration:1.1},1).to(matrixRing.rotation,{z:Math.PI*6,duration:1.1,ease:'none'},1)
+    .to(prime.rotation,{y:.1,x:0,duration:1.1},2.1).to(prime.position,{x:2.0,y:-1.55,z:-4,duration:1.1},2.1)
+    .to(camera.position,{x:.1,y:.25,z:9.4,duration:1.1},2.1);
 }
-gsap.utils.toArray('.reveal').forEach(el=>gsap.fromTo(el,{opacity:0,y:60},{opacity:1,y:0,duration:reduceMotion?.01:1,ease:'power4.out',scrollTrigger:{trigger:el,start:'top 87%',once:true}}));
-gsap.from('.hero-copy > *',{opacity:0,y:34,duration:1,stagger:.1,ease:'power3.out',delay:.25});
 
-const clock=new THREE.Clock(); let previousScroll=scrollY; let scrollVelocity=0;
-addEventListener('scroll',()=>{const current=scrollY;scrollVelocity+=(current-previousScroll)*.0025;previousScroll=current;},{passive:true});
+const clock=new THREE.Clock();let previousScroll=scrollY,scrollVelocity=0;
+addEventListener('scroll',()=>{const now=scrollY;scrollVelocity+=(now-previousScroll)*.0025;previousScroll=now},{passive:true});
 function render(){
-  const t=clock.getElapsedTime(); scrollVelocity*=.91;
-  world.rotation.y += (userRotationY-world.rotation.y)*.08; world.rotation.x += (userRotationX-world.rotation.x)*.08;
-  camera.lookAt(0,0,0); core.rotation.set(t*.72,t*1.1,Math.PI/4); coreRing.rotation.z+=.008+Math.abs(scrollVelocity)*.08; coreHalo.rotation.z-=.002;
-  coreLight.intensity=30+Math.sin(t*2.7)*8+charge*.2; glow.emissiveIntensity=4.6+Math.sin(t*3.1)*.8+charge*.015; head.position.y=2.04+Math.sin(t*1.2)*.022;
-  particles.rotation.y=t*.008; particles.position.x += ((pointer.x*.25)-particles.position.x)*.02; particles.position.y += ((pointer.y*.18)-particles.position.y)*.02;
-  shards.children.forEach((s,i)=>{s.rotation.x+=.002*s.userData.speed;s.rotation.y+=.0035*s.userData.speed;s.position.y=s.userData.baseY+Math.sin(t*s.userData.speed+s.userData.phase)*.18;s.position.x+=Math.sin(t*.25+i)*.0009;});
-  energySystem.children.forEach((r,i)=>{r.rotation.z=t*r.userData.speed*(i%2?-1:1);r.scale.setScalar(1+Math.sin(t*.9+i)*.04);});
-  renderer.render(scene,camera); requestAnimationFrame(render);
+  const t=clock.getElapsedTime();scrollVelocity*=.91;
+  if(!reduceMotion){world.rotation.y+=((userRotY+scrollVelocity*.04)-world.rotation.y)*.06;world.rotation.x+=((userRotX)-world.rotation.x)*.06}
+  camera.lookAt(0,0,0);matrix.rotation.set(t*.7,t*1.05,Math.PI/4);matrixRing.rotation.z+=.007+Math.abs(scrollVelocity)*.06;eyes.scale.x=1+Math.sin(t*5)*.035;coreLight.intensity=28+Math.sin(t*2.8)*7+Math.abs(scrollVelocity)*35;particles.rotation.y=t*.007;
+  atmosphere.children.forEach((s,i)=>{s.rotation.x+=.002*s.userData.speed;s.rotation.y+=.003*s.userData.speed;s.position.y=s.userData.baseY+Math.sin(t*s.userData.speed+s.userData.phase)*.18;s.position.x+=Math.sin(t*.22+i)*.0008});
+  renderer.render(scene,camera);requestAnimationFrame(render)
 }
 render();
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<768?1.25:1.75));ScrollTrigger.refresh();});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<768?1.2:1.7));ScrollTrigger.refresh()});
