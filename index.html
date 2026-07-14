@@ -3,38 +3,100 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#000107" />
-  <meta name="description" content="An unofficial fan-made cinematic Optimus Prime arrival experience." />
-  <title>PRIME: THE ARRIVAL // Fan Tribute</title>
+  <meta name="theme-color" content="#020207" />
+  <meta name="description" content="THE BREACH — an experimental scroll-driven cinematic web experience." />
+  <title>THE BREACH // Interactive Experience</title>
 </head>
 <body>
-  <canvas id="webgl" aria-label="Interactive cinematic Optimus Prime arrival"></canvas>
-  <div class="grain"></div><div class="vignette"></div><div class="chromatic"></div><div class="whiteout"></div>
+  <canvas id="webgl" aria-label="Interactive cinematic breach experience"></canvas>
 
-  <section class="gate">
-    <p>ORBITAL DEFENSE NETWORK // SIGNAL 07-A</p>
-    <h1>THE<br>ARRIVAL</h1>
-    <button class="start" type="button"><span>BREACH THE SKY</span><i></i></button>
-    <small>UNOFFICIAL FAN-MADE TRIBUTE · HEADPHONES RECOMMENDED</small>
-  </section>
+  <div class="screen-surface" aria-hidden="true">
+    <div class="screen-glow"></div>
+    <div class="glass-cracks"></div>
+    <div class="impact-dent"></div>
+  </div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+  <div class="flash"></div>
+  <div class="cursor-decoy" aria-hidden="true"></div>
 
-  <main class="experience" aria-hidden="true">
-    <div class="sky-status"><b>SPACE BRIDGE</b><span class="status">UNSTABLE</span></div>
-    <div class="timeline"><i></i><span class="progress"></span></div>
-    <div class="chapter"><small>ACT I</small><strong>THE SKY OPENS</strong></div>
-    <div class="mass-readout"><span>ESTIMATED MASS</span><b>6,430 T</b></div>
+  <header class="hud prop" data-prop>
+    <div class="brand"><span></span><b>THE BREACH</b></div>
+    <div class="signal">SIGNAL <strong>UNKNOWN</strong></div>
+  </header>
 
-    <section class="title-card active" data-scene="0"><p>UNKNOWN ENERGY SIGNATURE</p><h2>THE SKY<br>IS TEARING<br>OPEN.</h2></section>
-    <section class="title-card" data-scene="1"><p>CYBERTRONIAN CONTACT</p><h2>SOMETHING<br>COLOSSAL<br>IS COMING.</h2></section>
-    <section class="title-card" data-scene="2"><p>GROUND IMPACT IMMINENT</p><h2>BRACE<br>FOR<br>IMPACT.</h2></section>
-    <section class="title-card" data-scene="3"><p>MATRIX ENERGY DETECTED</p><h2>LIGHT<br>OUR DARKEST<br>HOUR.</h2></section>
-    <section class="title-card" data-scene="4"><p>AUTOBOT COMMANDER</p><h2>TILL<br>ALL ARE<br>ONE.</h2></section>
+  <aside class="progress-rail prop" data-prop aria-label="Story progress">
+    <span class="progress-fill"></span>
+    <ol>
+      <li data-label="Silence">01</li>
+      <li data-label="Pressure">02</li>
+      <li data-label="Crack">03</li>
+      <li data-label="Eye Contact">04</li>
+      <li data-label="Breach">05</li>
+      <li data-label="Outside">06</li>
+      <li data-label="Choice">07</li>
+    </ol>
+  </aside>
 
-    <button class="advance" type="button">ADVANCE SEQUENCE <span>→</span></button>
-    <button class="matrix-trigger" type="button">HOLD TO AWAKEN MATRIX</button>
-    <p class="hint">SCROLL / SWIPE TO ADVANCE · DRAG TO ORBIT</p>
-    <p class="legal">Fan-made concept. Not affiliated with Hasbro or Paramount.</p>
+  <main class="story">
+    <section class="chapter chapter-silence" data-chapter="0">
+      <div class="copy prop" data-prop>
+        <p>NO SIGNAL</p>
+        <h1>THERE IS<br />NOTHING<br />HERE.</h1>
+      </div>
+    </section>
+
+    <section class="chapter chapter-pressure" data-chapter="1">
+      <div class="copy prop" data-prop>
+        <p>STRUCTURAL ANOMALY</p>
+        <h2>SOMETHING<br />IS BEHIND<br />THE GLASS.</h2>
+      </div>
+    </section>
+
+    <section class="chapter chapter-crack" data-chapter="2">
+      <div class="copy prop" data-prop>
+        <p>BARRIER FAILURE</p>
+        <h2>IT FOUND<br />A WAY<br />THROUGH.</h2>
+      </div>
+    </section>
+
+    <section class="chapter chapter-eye" data-chapter="3">
+      <div class="copy prop" data-prop>
+        <p>VISUAL CONTACT</p>
+        <h2>DO NOT<br />LOOK<br />AWAY.</h2>
+      </div>
+    </section>
+
+    <section class="chapter chapter-breach" data-chapter="4">
+      <div class="copy prop" data-prop>
+        <p>CONTAINMENT LOST</p>
+        <h2>THE SCREEN<br />WAS NEVER<br />A WALL.</h2>
+      </div>
+    </section>
+
+    <section class="chapter chapter-outside" data-chapter="5">
+      <div class="copy prop" data-prop>
+        <p>PROXIMITY CRITICAL</p>
+        <h2>TOO LARGE<br />TO FIT<br />INSIDE.</h2>
+      </div>
+    </section>
+
+    <section class="chapter chapter-choice" data-chapter="6">
+      <div class="choice-panel prop" data-prop>
+        <p>IT IS WAITING FOR YOUR ANSWER.</p>
+        <h2>LET IT<br />CROSS?</h2>
+        <div class="choices">
+          <button type="button" data-choice="trust">TRUST</button>
+          <button type="button" data-choice="leave">LEAVE</button>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <div class="chapter-caption prop" data-prop><span>01</span><b>SILENCE</b></div>
+  <p class="scroll-hint prop" data-prop>SCROLL TO BREAK THE BARRIER</p>
+  <p class="legal">Original experimental robot concept.</p>
+
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
