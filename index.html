@@ -3,119 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#05070d" />
-    <meta name="description" content="A fan-made interactive 3D tribute to Optimus Prime, built with Three.js and GSAP." />
-    <title>Optimus Prime // Rise of a Leader</title>
+    <meta name="theme-color" content="#020407" />
+    <meta name="description" content="An unofficial fan-made interactive cinematic tribute to Optimus Prime." />
+    <title>PRIME // Interactive Tribute</title>
   </head>
   <body>
     <div id="app">
       <canvas id="webgl" aria-label="Interactive 3D Optimus Prime tribute"></canvas>
-      <div class="noise" aria-hidden="true"></div>
-      <div class="scanlines" aria-hidden="true"></div>
-      <div class="energy-flash" aria-hidden="true"></div>
-      <div class="scan-sweep" aria-hidden="true"></div>
+      <div class="grain" aria-hidden="true"></div>
+      <div class="vignette" aria-hidden="true"></div>
+      <div class="letterbox" aria-hidden="true"></div>
+      <div class="impact-flash" aria-hidden="true"></div>
 
-      <header class="site-header">
-        <a class="brand" href="#hero" aria-label="Optimus Prime tribute home">
-          <span class="brand-mark">OP</span>
-          <span class="brand-copy"><strong>OPTIMUS PRIME</strong><small>FAN-MADE INTERACTIVE TRIBUTE</small></span>
-        </a>
-        <nav class="nav" aria-label="Primary navigation">
-          <a href="#legacy">Legacy</a>
-          <a href="#systems">Systems</a>
-          <a href="#command">Command</a>
-        </nav>
-        <button class="header-action" data-action="transform">Transform</button>
-      </header>
+      <section class="boot" aria-label="Experience introduction">
+        <div class="boot-scan"></div>
+        <p class="boot-code">DEEP SPACE RELAY // 07-A</p>
+        <h1 class="boot-title">SIGNAL<br />DETECTED</h1>
+        <p class="boot-subtitle">CYBERTRONIAN SIGNATURE APPROACHING</p>
+        <button class="enter-button" type="button"><span>ENTER EXPERIENCE</span><i></i></button>
+        <small>HEADPHONES RECOMMENDED</small>
+      </section>
 
-      <main>
-        <section class="hero" id="hero">
-          <div class="hero-copy">
-            <p class="eyebrow"><span></span> Autobot commander online</p>
-            <h1>Freedom is the<br /><span>right of all.</span></h1>
-            <p class="hero-description">Step into an interactive 3D tribute to the legendary leader. Drag to rotate, target armor systems, switch between robot and truck configurations, and issue commands directly to the battlefield interface.</p>
-            <div class="hero-actions">
-              <button class="button button-primary" data-action="transform">Initiate transformation</button>
-              <a class="button button-ghost" href="#legacy">Explore the legacy</a>
-            </div>
-            <div class="hero-stats">
-              <div><strong>CYBERTRON</strong><span>Origin</span></div>
-              <div><strong>PRIME</strong><span>Commander class</span></div>
-              <div><strong>LIVE</strong><span>Interactive WebGL</span></div>
-            </div>
-          </div>
+      <main class="experience" aria-hidden="true">
+        <header class="top-hud">
+          <div class="identity"><span class="identity-mark">P</span><div><strong>PRIME</strong><small>UNOFFICIAL INTERACTIVE TRIBUTE</small></div></div>
+          <div class="telemetry"><span>SECTOR <b>EARTH</b></span><span>ENERGON <b class="energy-value">84%</b></span><span>LINK <b>STABLE</b></span></div>
+        </header>
 
-          <div class="hero-hud" aria-hidden="true">
-            <div class="hud-ring ring-a"></div><div class="hud-ring ring-b"></div>
-            <div class="hud-copy top">TARGET // OPTIMUS PRIME</div>
-            <div class="hud-copy bottom">STATUS // READY</div>
-          </div>
+        <aside class="chapter-rail" aria-label="Experience chapters">
+          <button data-scene="arrival" class="active"><span>01</span><b>ARRIVAL</b></button>
+          <button data-scene="transformation"><span>02</span><b>TRANSFORM</b></button>
+          <button data-scene="commander"><span>03</span><b>COMMANDER</b></button>
+          <button data-scene="matrix"><span>04</span><b>MATRIX</b></button>
+        </aside>
 
-          <aside class="control-panel" aria-label="Optimus Prime controls">
-            <div class="panel-head"><span class="status-text">ROBOT MODE</span><i></i></div>
-            <div class="energy-meter"><span></span></div>
-            <div class="control-grid">
-              <button data-action="transform">Transform</button>
-              <button data-action="scan">Scan</button>
-              <button data-action="blaster">Blaster</button>
-              <button data-action="matrix">Matrix</button>
-            </div>
-            <p class="target-label">DRAG TO ROTATE // CLICK ARMOR</p>
-          </aside>
-        </section>
+        <div class="scene-copy active" data-copy="arrival">
+          <p class="kicker">AUTOBOT COMMAND SIGNAL</p>
+          <h2>FREEDOM<br />IS THE RIGHT<br />OF ALL.</h2>
+          <p class="scene-description">Drag to orbit. Scroll to move through the encounter. Target illuminated components to trigger mechanical responses.</p>
+        </div>
 
-        <section class="section legacy" id="legacy">
-          <div class="section-heading reveal">
-            <p class="eyebrow"><span></span> The burden of command</p>
-            <h2>A leader forged<br />between worlds.</h2>
-          </div>
-          <div class="legacy-grid">
-            <article class="story-card reveal"><span>01</span><h3>Guardian</h3><p>Calm under fire, unwavering in purpose, and always willing to stand between danger and those who cannot defend themselves.</p></article>
-            <article class="story-card reveal"><span>02</span><h3>Commander</h3><p>Every movement balances strength with restraint. Power is never the mission; freedom is.</p></article>
-            <article class="story-card reveal"><span>03</span><h3>Symbol</h3><p>Red armor, blue steel, silver resolve—a silhouette recognized across generations.</p></article>
-          </div>
-        </section>
+        <div class="scene-copy" data-copy="transformation">
+          <p class="kicker">CONVERSION SEQUENCE</p>
+          <h2>MORE THAN<br />MEETS THE EYE.</h2>
+          <p class="scene-description">Initiate a multi-stage transformation sequence with independent chassis, wheel, armor, head and limb motion.</p>
+        </div>
 
-        <section class="section systems" id="systems">
-          <div class="systems-copy reveal">
-            <p class="eyebrow"><span></span> Cybertronian systems</p>
-            <h2>Built to lead.<br />Engineered to endure.</h2>
-            <p>The 3D model is generated entirely in code. Every wheel, exhaust stack, chest window, armor panel, faceplate, and energy core is a live interactive object.</p>
-          </div>
-          <div class="system-list">
-            <div class="system-row reveal"><span>01</span><strong>Dual-form chassis</strong><em>Robot ↔ truck configuration</em></div>
-            <div class="system-row reveal"><span>02</span><strong>Ion blaster array</strong><em>Targeted kinetic response</em></div>
-            <div class="system-row reveal"><span>03</span><strong>Matrix chamber</strong><em>Reactive energy sequence</em></div>
-            <div class="system-row reveal"><span>04</span><strong>Battlefield optics</strong><em>Raycast component targeting</em></div>
-          </div>
-        </section>
+        <div class="scene-copy" data-copy="commander">
+          <p class="kicker">AUTOBOT COMMANDER</p>
+          <h2>COURAGE<br />BEFORE FEAR.</h2>
+          <p class="scene-description">Prime tracks your movement, scans the field and responds to combat commands in real time.</p>
+        </div>
 
-        <section class="section command" id="command">
-          <div class="command-shell reveal">
-            <div class="command-bar"><span></span><span></span><span></span><p>AUTOBOT_COMMAND.EXE</p><small>SECURE LINK</small></div>
-            <div class="command-log" aria-live="polite">
-              <div class="system-message"><b>PRIME</b><span>Command channel open. Try “transform”, “scan”, “roll out”, “matrix”, or “blaster”.</span></div>
-            </div>
-            <form class="command-form">
-              <label for="command-input">Command</label>
-              <input id="command-input" autocomplete="off" placeholder="ENTER COMMAND..." />
-              <button type="submit">Execute</button>
-            </form>
-          </div>
-        </section>
+        <div class="scene-copy" data-copy="matrix">
+          <p class="kicker">MATRIX CHAMBER</p>
+          <h2>LIGHT OUR<br />DARKEST HOUR.</h2>
+          <p class="scene-description">Open the chest chamber and awaken the Matrix. The entire environment reacts to the energy surge.</p>
+        </div>
 
-        <section class="section final-cta">
-          <p class="eyebrow reveal"><span></span> Autobots, roll out</p>
-          <h2 class="reveal">Stand firm.<br /><span>Move forward.</span></h2>
-          <p class="reveal">A fan-made interactive experience built with Three.js, GSAP, and procedural geometry.</p>
-          <button class="button button-primary reveal" data-action="transform">Transform again</button>
-        </section>
+        <div class="target-label" aria-live="polite">DRAG TO ORBIT</div>
+
+        <div class="action-dock" aria-label="Interactive controls">
+          <button data-action="transform"><span>01</span><b>TRANSFORM</b><small>T</small></button>
+          <button data-action="scan"><span>02</span><b>SCAN</b><small>S</small></button>
+          <button data-action="blaster"><span>03</span><b>ION BLASTER</b><small>F</small></button>
+          <button data-action="matrix"><span>04</span><b>MATRIX</b><small>M</small></button>
+        </div>
+
+        <div class="status-panel">
+          <p class="status-line">PRIME ONLINE</p>
+          <div class="energy-track"><i></i></div>
+          <div class="status-grid"><span>MODE <b class="mode-value">ROBOT</b></span><span>WEAPON <b class="weapon-value">STOWED</b></span><span>TARGET <b class="target-value">NONE</b></span></div>
+        </div>
+
+        <div class="scroll-hint"><span>SCROLL TO ADVANCE</span><i></i></div>
+        <p class="fan-note">Fan-made concept. Not affiliated with or endorsed by Hasbro or Paramount.</p>
       </main>
-
-      <footer>
-        <p>FAN-MADE CONCEPT // NOT AFFILIATED WITH HASBRO OR PARAMOUNT</p>
-        <p>THREE.JS + GSAP + WEBGL</p>
-      </footer>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
