@@ -4,55 +4,97 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#05070d" />
-    <meta name="description" content="ChatGPT: an immersive AI interface reimagined as a cinematic transforming machine." />
+    <meta name="description" content="ChatGPT reimagined as an interactive cinematic transforming machine." />
     <title>ChatGPT // Transformer Interface</title>
-    <link rel="stylesheet" href="/src/cinematic.css" />
   </head>
   <body>
     <div id="app">
-      <canvas id="webgl" aria-hidden="true"></canvas>
+      <canvas id="webgl" aria-label="Interactive 3D AI mech"></canvas>
       <div class="noise" aria-hidden="true"></div>
       <div class="scanlines" aria-hidden="true"></div>
+      <div class="reactor-flash" aria-hidden="true"></div>
+      <div class="scan-sweep" aria-hidden="true"></div>
+
+      <div class="interaction-layer">
+        <div class="interaction-hint">DRAG TO ROTATE // CLICK COMPONENTS</div>
+        <aside class="mech-console" aria-label="Mech controls">
+          <div class="console-head"><span class="live-status">SYSTEM READY</span><i class="status-dot"></i></div>
+          <div class="charge-track"><div class="charge-fill"></div></div>
+          <div class="mode-grid">
+            <button class="mode-button active" data-mode="analysis">Analysis</button>
+            <button class="mode-button" data-mode="combat">Combat</button>
+            <button class="mode-button" data-mode="creative">Creative</button>
+          </div>
+          <button class="charge-button">Charge neural core</button>
+        </aside>
+      </div>
+
       <header class="site-header">
         <a class="brand" href="#top" aria-label="ChatGPT transformer home">
           <span class="brand-mark">C</span>
           <span class="brand-copy"><strong>CHATGPT</strong><small>TRANSFORMER INTERFACE</small></span>
         </a>
-        <nav class="nav" aria-label="Primary navigation">
-          <a href="#systems">Systems</a><a href="#capabilities">Capabilities</a><a href="#interface">Interface</a>
-        </nav>
-        <a class="header-cta" href="#activate">Initialize</a>
+        <nav class="nav" aria-label="Primary navigation"><a href="#systems">Systems</a><a href="#capabilities">Capabilities</a><a href="#interface">Interface</a></nav>
+        <a class="header-cta" href="#interface">Initialize</a>
       </header>
+
       <main>
         <section class="hero" id="top">
           <div class="hero-copy">
             <p class="eyebrow"><span></span> Neural core online</p>
             <h1>Intelligence.<br /><span>Reconfigured.</span></h1>
-            <p class="hero-description">Meet a cinematic AI interface inspired by transforming machines — built to think, adapt, and reshape every conversation in real time.</p>
-            <div class="hero-actions"><a class="button button-primary" href="#activate">Activate core</a><a class="button button-ghost" href="#systems">Explore systems</a></div>
-            <div class="hero-meta" aria-label="System details"><div><strong>128</strong><span>Neural channels</span></div><div><strong>01</strong><span>Adaptive core</span></div><div><strong>∞</strong><span>Possible outputs</span></div></div>
+            <p class="hero-description">A cinematic AI machine that reacts to your pointer, your touch, your commands, and the way you explore.</p>
+            <div class="hero-actions"><a class="button button-primary" href="#interface">Open neural link</a><a class="button button-ghost" href="#systems">Explore systems</a></div>
+            <div class="hero-meta"><div><strong>LIVE</strong><span>Raycast targeting</span></div><div><strong>03</strong><span>Operating modes</span></div><div><strong>∞</strong><span>User commands</span></div></div>
           </div>
-          <div class="hud" aria-hidden="true"><div class="hud-ring hud-ring-a"></div><div class="hud-ring hud-ring-b"></div><div class="hud-label hud-label-top">CORE // GPT</div><div class="hud-label hud-label-bottom">STATUS // ACTIVE</div></div>
-          <div class="scroll-cue"><span>Scroll to transform</span><i></i></div>
+          <div class="hud" aria-hidden="true"><div class="hud-ring hud-ring-a"></div><div class="hud-ring hud-ring-b"></div><div class="hud-label hud-label-top">CORE // GPT</div><div class="hud-label hud-label-bottom">STATUS // INTERACTIVE</div></div>
+          <div class="scroll-cue"><span>Drag, click, command</span><i></i></div>
         </section>
+
         <section class="section systems" id="systems">
           <div class="section-heading reveal"><p class="eyebrow"><span></span> System architecture</p><h2>A machine built<br />for fluid intelligence.</h2></div>
           <div class="systems-grid">
-            <article class="system-card reveal"><div class="card-index">01</div><div class="card-icon">◈</div><h3>Adaptive reasoning</h3><p>Reconfigures its approach around your goal, context, and working style.</p><span class="card-line"></span></article>
-            <article class="system-card reveal"><div class="card-index">02</div><div class="card-icon">⌁</div><h3>Multimodal vision</h3><p>Moves seamlessly between language, imagery, code, and structured data.</p><span class="card-line"></span></article>
-            <article class="system-card reveal"><div class="card-index">03</div><div class="card-icon">◎</div><h3>Context engine</h3><p>Maintains the thread of complex tasks without losing the human intent.</p><span class="card-line"></span></article>
+            <article class="system-card reveal"><div class="card-index">01</div><div class="card-icon">◈</div><h3>Adaptive reasoning</h3><p>Reconfigures its behavior around your chosen operating mode.</p><span class="card-line"></span></article>
+            <article class="system-card reveal"><div class="card-index">02</div><div class="card-icon">⌁</div><h3>Reactive vision</h3><p>Uses raycasting to detect exactly which mech component you target.</p><span class="card-line"></span></article>
+            <article class="system-card reveal"><div class="card-index">03</div><div class="card-icon">◎</div><h3>Command engine</h3><p>Transforms typed user commands into visible machine responses.</p><span class="card-line"></span></article>
           </div>
         </section>
+
         <section class="section capabilities" id="capabilities">
-          <div class="capability-copy reveal"><p class="eyebrow"><span></span> Transformation protocol</p><h2>One intelligence.<br />Infinite configurations.</h2><p>The interface responds like a living machine. Every scroll shifts the structure, every pointer movement redirects attention, and every interaction carries momentum.</p></div>
-          <div class="capability-list"><div class="capability-item reveal"><span>01</span><strong>Think</strong><em>Analyze complex systems</em></div><div class="capability-item reveal"><span>02</span><strong>Create</strong><em>Generate original concepts</em></div><div class="capability-item reveal"><span>03</span><strong>Build</strong><em>Turn intent into software</em></div><div class="capability-item reveal"><span>04</span><strong>Transform</strong><em>Adapt ideas across formats</em></div></div>
+          <div class="capability-copy reveal"><p class="eyebrow"><span></span> Interaction protocol</p><h2>Touch the machine.<br />Change its state.</h2><p>Drag to rotate the mech. Click its core, visor, or arms. Change operating modes from the live console and watch its materials, pose, energy, and status react.</p></div>
+          <div class="capability-list">
+            <div class="capability-item reveal"><span>01</span><strong>Drag</strong><em>Manual 3D rotation</em></div>
+            <div class="capability-item reveal"><span>02</span><strong>Target</strong><em>Component raycasting</em></div>
+            <div class="capability-item reveal"><span>03</span><strong>Switch</strong><em>Stateful operating modes</em></div>
+            <div class="capability-item reveal"><span>04</span><strong>Command</strong><em>Live terminal input</em></div>
+          </div>
         </section>
+
         <section class="section interface" id="interface">
-          <div class="terminal reveal"><div class="terminal-bar"><span></span><span></span><span></span><p>NEURAL_LINK.EXE</p><small>ENCRYPTED</small></div><div class="terminal-body"><div class="terminal-status"><span class="pulse"></span><p>CHATGPT CORE CONNECTED</p></div><div class="chat-row user-row"><span>YOU</span><p>Design the future of human–machine collaboration.</p></div><div class="chat-row ai-row"><span>GPT</span><p class="typing-text"></p></div><div class="prompt-line"><span>&gt;</span><span class="cursor"></span></div></div></div>
+          <div class="terminal reveal">
+            <div class="terminal-bar"><span></span><span></span><span></span><p>NEURAL_LINK.EXE</p><small>INTERACTIVE</small></div>
+            <div class="terminal-body">
+              <div class="terminal-status"><span class="pulse"></span><p>CHATGPT CORE CONNECTED</p></div>
+              <div class="chat-row user-row"><span>YOU</span><p>Design the future of human–machine collaboration.</p></div>
+              <div class="chat-row ai-row"><span>GPT</span><p>Neural link ready. Type a command below and observe the machine respond.</p></div>
+            </div>
+          </div>
+          <div class="command-deck reveal">
+            <div class="command-log" aria-live="polite"><div class="ai"><b>GPT</b><span>Try: “scan the area”, “transform”, “create something”, or simply say hello.</span></div></div>
+            <form class="command-form"><input class="command-input" aria-label="Enter command" placeholder="ENTER A COMMAND..." autocomplete="off" /><button type="submit">Execute</button></form>
+          </div>
         </section>
-        <section class="section final-cta" id="activate"><div class="core-emblem reveal" aria-hidden="true"><span></span><span></span><span></span></div><p class="eyebrow reveal"><span></span> Awaiting command</p><h2 class="reveal">Activate your<br /><span>next evolution.</span></h2><p class="reveal">The machine is ready. The next move is yours.</p><a class="button button-primary reveal" href="#top">Initialize ChatGPT</a></section>
+
+        <section class="section final-cta" id="activate">
+          <div class="core-emblem reveal" aria-hidden="true"><span></span><span></span><span></span></div>
+          <p class="eyebrow reveal"><span></span> Awaiting command</p>
+          <h2 class="reveal">The interface is<br /><span>in your hands.</span></h2>
+          <p class="reveal">Not a passive landing page. A responsive machine.</p>
+          <a class="button button-primary reveal" href="#top">Return to mech</a>
+        </section>
       </main>
-      <footer><p>CONCEPT INTERFACE // 2026</p><p>BUILT WITH THREE.JS + GSAP</p></footer>
+
+      <footer><p>CONCEPT INTERFACE // 2026</p><p>THREE.JS + GSAP + RAYCASTING</p></footer>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
