@@ -4,97 +4,118 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#05070d" />
-    <meta name="description" content="ChatGPT reimagined as an interactive cinematic transforming machine." />
-    <title>ChatGPT // Transformer Interface</title>
+    <meta name="description" content="A fan-made interactive 3D tribute to Optimus Prime, built with Three.js and GSAP." />
+    <title>Optimus Prime // Rise of a Leader</title>
   </head>
   <body>
     <div id="app">
-      <canvas id="webgl" aria-label="Interactive 3D AI mech"></canvas>
+      <canvas id="webgl" aria-label="Interactive 3D Optimus Prime tribute"></canvas>
       <div class="noise" aria-hidden="true"></div>
       <div class="scanlines" aria-hidden="true"></div>
-      <div class="reactor-flash" aria-hidden="true"></div>
+      <div class="energy-flash" aria-hidden="true"></div>
       <div class="scan-sweep" aria-hidden="true"></div>
 
-      <div class="interaction-layer">
-        <div class="interaction-hint">DRAG TO ROTATE // CLICK COMPONENTS</div>
-        <aside class="mech-console" aria-label="Mech controls">
-          <div class="console-head"><span class="live-status">SYSTEM READY</span><i class="status-dot"></i></div>
-          <div class="charge-track"><div class="charge-fill"></div></div>
-          <div class="mode-grid">
-            <button class="mode-button active" data-mode="analysis">Analysis</button>
-            <button class="mode-button" data-mode="combat">Combat</button>
-            <button class="mode-button" data-mode="creative">Creative</button>
-          </div>
-          <button class="charge-button">Charge neural core</button>
-        </aside>
-      </div>
-
       <header class="site-header">
-        <a class="brand" href="#top" aria-label="ChatGPT transformer home">
-          <span class="brand-mark">C</span>
-          <span class="brand-copy"><strong>CHATGPT</strong><small>TRANSFORMER INTERFACE</small></span>
+        <a class="brand" href="#hero" aria-label="Optimus Prime tribute home">
+          <span class="brand-mark">OP</span>
+          <span class="brand-copy"><strong>OPTIMUS PRIME</strong><small>FAN-MADE INTERACTIVE TRIBUTE</small></span>
         </a>
-        <nav class="nav" aria-label="Primary navigation"><a href="#systems">Systems</a><a href="#capabilities">Capabilities</a><a href="#interface">Interface</a></nav>
-        <a class="header-cta" href="#interface">Initialize</a>
+        <nav class="nav" aria-label="Primary navigation">
+          <a href="#legacy">Legacy</a>
+          <a href="#systems">Systems</a>
+          <a href="#command">Command</a>
+        </nav>
+        <button class="header-action" data-action="transform">Transform</button>
       </header>
 
       <main>
-        <section class="hero" id="top">
+        <section class="hero" id="hero">
           <div class="hero-copy">
-            <p class="eyebrow"><span></span> Neural core online</p>
-            <h1>Intelligence.<br /><span>Reconfigured.</span></h1>
-            <p class="hero-description">A cinematic AI machine that reacts to your pointer, your touch, your commands, and the way you explore.</p>
-            <div class="hero-actions"><a class="button button-primary" href="#interface">Open neural link</a><a class="button button-ghost" href="#systems">Explore systems</a></div>
-            <div class="hero-meta"><div><strong>LIVE</strong><span>Raycast targeting</span></div><div><strong>03</strong><span>Operating modes</span></div><div><strong>∞</strong><span>User commands</span></div></div>
+            <p class="eyebrow"><span></span> Autobot commander online</p>
+            <h1>Freedom is the<br /><span>right of all.</span></h1>
+            <p class="hero-description">Step into an interactive 3D tribute to the legendary leader. Drag to rotate, target armor systems, switch between robot and truck configurations, and issue commands directly to the battlefield interface.</p>
+            <div class="hero-actions">
+              <button class="button button-primary" data-action="transform">Initiate transformation</button>
+              <a class="button button-ghost" href="#legacy">Explore the legacy</a>
+            </div>
+            <div class="hero-stats">
+              <div><strong>CYBERTRON</strong><span>Origin</span></div>
+              <div><strong>PRIME</strong><span>Commander class</span></div>
+              <div><strong>LIVE</strong><span>Interactive WebGL</span></div>
+            </div>
           </div>
-          <div class="hud" aria-hidden="true"><div class="hud-ring hud-ring-a"></div><div class="hud-ring hud-ring-b"></div><div class="hud-label hud-label-top">CORE // GPT</div><div class="hud-label hud-label-bottom">STATUS // INTERACTIVE</div></div>
-          <div class="scroll-cue"><span>Drag, click, command</span><i></i></div>
+
+          <div class="hero-hud" aria-hidden="true">
+            <div class="hud-ring ring-a"></div><div class="hud-ring ring-b"></div>
+            <div class="hud-copy top">TARGET // OPTIMUS PRIME</div>
+            <div class="hud-copy bottom">STATUS // READY</div>
+          </div>
+
+          <aside class="control-panel" aria-label="Optimus Prime controls">
+            <div class="panel-head"><span class="status-text">ROBOT MODE</span><i></i></div>
+            <div class="energy-meter"><span></span></div>
+            <div class="control-grid">
+              <button data-action="transform">Transform</button>
+              <button data-action="scan">Scan</button>
+              <button data-action="blaster">Blaster</button>
+              <button data-action="matrix">Matrix</button>
+            </div>
+            <p class="target-label">DRAG TO ROTATE // CLICK ARMOR</p>
+          </aside>
+        </section>
+
+        <section class="section legacy" id="legacy">
+          <div class="section-heading reveal">
+            <p class="eyebrow"><span></span> The burden of command</p>
+            <h2>A leader forged<br />between worlds.</h2>
+          </div>
+          <div class="legacy-grid">
+            <article class="story-card reveal"><span>01</span><h3>Guardian</h3><p>Calm under fire, unwavering in purpose, and always willing to stand between danger and those who cannot defend themselves.</p></article>
+            <article class="story-card reveal"><span>02</span><h3>Commander</h3><p>Every movement balances strength with restraint. Power is never the mission; freedom is.</p></article>
+            <article class="story-card reveal"><span>03</span><h3>Symbol</h3><p>Red armor, blue steel, silver resolve—a silhouette recognized across generations.</p></article>
+          </div>
         </section>
 
         <section class="section systems" id="systems">
-          <div class="section-heading reveal"><p class="eyebrow"><span></span> System architecture</p><h2>A machine built<br />for fluid intelligence.</h2></div>
-          <div class="systems-grid">
-            <article class="system-card reveal"><div class="card-index">01</div><div class="card-icon">◈</div><h3>Adaptive reasoning</h3><p>Reconfigures its behavior around your chosen operating mode.</p><span class="card-line"></span></article>
-            <article class="system-card reveal"><div class="card-index">02</div><div class="card-icon">⌁</div><h3>Reactive vision</h3><p>Uses raycasting to detect exactly which mech component you target.</p><span class="card-line"></span></article>
-            <article class="system-card reveal"><div class="card-index">03</div><div class="card-icon">◎</div><h3>Command engine</h3><p>Transforms typed user commands into visible machine responses.</p><span class="card-line"></span></article>
+          <div class="systems-copy reveal">
+            <p class="eyebrow"><span></span> Cybertronian systems</p>
+            <h2>Built to lead.<br />Engineered to endure.</h2>
+            <p>The 3D model is generated entirely in code. Every wheel, exhaust stack, chest window, armor panel, faceplate, and energy core is a live interactive object.</p>
+          </div>
+          <div class="system-list">
+            <div class="system-row reveal"><span>01</span><strong>Dual-form chassis</strong><em>Robot ↔ truck configuration</em></div>
+            <div class="system-row reveal"><span>02</span><strong>Ion blaster array</strong><em>Targeted kinetic response</em></div>
+            <div class="system-row reveal"><span>03</span><strong>Matrix chamber</strong><em>Reactive energy sequence</em></div>
+            <div class="system-row reveal"><span>04</span><strong>Battlefield optics</strong><em>Raycast component targeting</em></div>
           </div>
         </section>
 
-        <section class="section capabilities" id="capabilities">
-          <div class="capability-copy reveal"><p class="eyebrow"><span></span> Interaction protocol</p><h2>Touch the machine.<br />Change its state.</h2><p>Drag to rotate the mech. Click its core, visor, or arms. Change operating modes from the live console and watch its materials, pose, energy, and status react.</p></div>
-          <div class="capability-list">
-            <div class="capability-item reveal"><span>01</span><strong>Drag</strong><em>Manual 3D rotation</em></div>
-            <div class="capability-item reveal"><span>02</span><strong>Target</strong><em>Component raycasting</em></div>
-            <div class="capability-item reveal"><span>03</span><strong>Switch</strong><em>Stateful operating modes</em></div>
-            <div class="capability-item reveal"><span>04</span><strong>Command</strong><em>Live terminal input</em></div>
-          </div>
-        </section>
-
-        <section class="section interface" id="interface">
-          <div class="terminal reveal">
-            <div class="terminal-bar"><span></span><span></span><span></span><p>NEURAL_LINK.EXE</p><small>INTERACTIVE</small></div>
-            <div class="terminal-body">
-              <div class="terminal-status"><span class="pulse"></span><p>CHATGPT CORE CONNECTED</p></div>
-              <div class="chat-row user-row"><span>YOU</span><p>Design the future of human–machine collaboration.</p></div>
-              <div class="chat-row ai-row"><span>GPT</span><p>Neural link ready. Type a command below and observe the machine respond.</p></div>
+        <section class="section command" id="command">
+          <div class="command-shell reveal">
+            <div class="command-bar"><span></span><span></span><span></span><p>AUTOBOT_COMMAND.EXE</p><small>SECURE LINK</small></div>
+            <div class="command-log" aria-live="polite">
+              <div class="system-message"><b>PRIME</b><span>Command channel open. Try “transform”, “scan”, “roll out”, “matrix”, or “blaster”.</span></div>
             </div>
-          </div>
-          <div class="command-deck reveal">
-            <div class="command-log" aria-live="polite"><div class="ai"><b>GPT</b><span>Try: “scan the area”, “transform”, “create something”, or simply say hello.</span></div></div>
-            <form class="command-form"><input class="command-input" aria-label="Enter command" placeholder="ENTER A COMMAND..." autocomplete="off" /><button type="submit">Execute</button></form>
+            <form class="command-form">
+              <label for="command-input">Command</label>
+              <input id="command-input" autocomplete="off" placeholder="ENTER COMMAND..." />
+              <button type="submit">Execute</button>
+            </form>
           </div>
         </section>
 
-        <section class="section final-cta" id="activate">
-          <div class="core-emblem reveal" aria-hidden="true"><span></span><span></span><span></span></div>
-          <p class="eyebrow reveal"><span></span> Awaiting command</p>
-          <h2 class="reveal">The interface is<br /><span>in your hands.</span></h2>
-          <p class="reveal">Not a passive landing page. A responsive machine.</p>
-          <a class="button button-primary reveal" href="#top">Return to mech</a>
+        <section class="section final-cta">
+          <p class="eyebrow reveal"><span></span> Autobots, roll out</p>
+          <h2 class="reveal">Stand firm.<br /><span>Move forward.</span></h2>
+          <p class="reveal">A fan-made interactive experience built with Three.js, GSAP, and procedural geometry.</p>
+          <button class="button button-primary reveal" data-action="transform">Transform again</button>
         </section>
       </main>
 
-      <footer><p>CONCEPT INTERFACE // 2026</p><p>THREE.JS + GSAP + RAYCASTING</p></footer>
+      <footer>
+        <p>FAN-MADE CONCEPT // NOT AFFILIATED WITH HASBRO OR PARAMOUNT</p>
+        <p>THREE.JS + GSAP + WEBGL</p>
+      </footer>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
