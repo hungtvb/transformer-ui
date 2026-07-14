@@ -7,6 +7,7 @@
     <meta name="description" content="An unofficial fan-made interactive cinematic tribute to Optimus Prime." />
     <title>PRIME // Interactive Tribute</title>
     <link rel="stylesheet" href="/src/mobile.css" />
+    <link rel="stylesheet" href="/src/cinematic.css" />
   </head>
   <body>
     <div id="app">
@@ -59,7 +60,7 @@
         <div class="scene-copy" data-copy="matrix">
           <p class="kicker">MATRIX CHAMBER</p>
           <h2>LIGHT OUR<br />DARKEST HOUR.</h2>
-          <p class="scene-description">Open the chest chamber and awaken the Matrix. The entire environment reacts to the energy surge.</p>
+          <p class="scene-description">Press and hold Matrix to charge the chamber. Release only after the energy reaches full power.</p>
         </div>
 
         <div class="target-label" aria-live="polite">DRAG TO ORBIT</div>
@@ -68,7 +69,7 @@
           <button data-action="transform"><span>01</span><b>TRANSFORM</b><small>T</small></button>
           <button data-action="scan"><span>02</span><b>SCAN</b><small>S</small></button>
           <button data-action="blaster"><span>03</span><b>ION BLASTER</b><small>F</small></button>
-          <button data-action="matrix"><span>04</span><b>MATRIX</b><small>M</small></button>
+          <button data-action="matrix"><span>04</span><b>HOLD MATRIX</b><small>M</small></button>
         </div>
 
         <div class="status-panel">
@@ -82,5 +83,6 @@
       </main>
     </div>
     <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/cinematic.js"></script>
   </body>
 </html>
