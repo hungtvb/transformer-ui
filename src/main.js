@@ -1,10 +1,12 @@
 import './style.css';
 import * as THREE from 'three';
-import { gsap } from 'gsap';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { createAudioController } from './audioController.js';
+import { createEffectsController } from './effectsController.js';
 import { createExperienceStateMachine, PHASE } from './experienceState.js';
+import { createInputController } from './inputController.js';
 
 const mobile = innerWidth < 760;
 const canvas = document.querySelector('#webgl');
@@ -25,6 +27,10 @@ const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), mobile ? .35 : .55, .7, .2);
 composer.addPass(bloom);
+
+const audio = createAudioController();
+const effects = createEffectsController({ bloom, mobile });
+const input = createInputController();
 
 const mat = {
   wall: new THREE.MeshStandardMaterial({ color: 0x101410, metalness: .78, roughness: .62 }),
@@ -104,22 +110,10 @@ const ui = {
 
 const state = {
   power: 0, signalLock: 0, leverDragging: false, radarDragging: false, contactHolding: false,
-  pointerX: 0, pointerY: 0, audio: null, targetX: 72, targetY: 34, reticleX: 30, reticleY: 68,
+  pointerX: 0, pointerY: 0, targetX: 72, targetY: 34, reticleX: 30, reticleY: 68,
   trackQuality: 0, hold: 0, contactSynchronized: false, paused: false,
 };
 
-const initAudio = () => {
-  if (!state.audio) state.audio = new (window.AudioContext || window.webkitAudioContext)();
-  state.audio.resume();
-};
-const tone = (frequency = 70, duration = .4, gain = .04, type = 'sine') => {
-  if (!state.audio || state.audio.state !== 'running') return;
-  const oscillator = state.audio.createOscillator(); const volume = state.audio.createGain();
-  oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, state.audio.currentTime);
-  volume.gain.setValueAtTime(gain, state.audio.currentTime); volume.gain.exponentialRampToValueAtTime(.001, state.audio.currentTime + duration);
-  oscillator.connect(volume).connect(state.audio.destination); oscillator.start(); oscillator.stop(state.audio.currentTime + duration);
-};
-const flash = () => gsap.fromTo('.flash', { opacity: .7 }, { opacity: 0, duration: .6 });
 const setMission = (index) => ui.missions.forEach((mission, missionIndex) => mission.classList.toggle('active', index === missionIndex));
 
 let phaseMachine;
@@ -129,16 +123,16 @@ const enterPhase = ({ current }) => {
   switch (current) {
     case PHASE.POWER_OFF:
       ui.station.setAttribute('aria-hidden', 'false');
-      gsap.timeline().to('.calibration>*', { opacity: 0, y: -20, stagger: .04, duration: .35 })
+      effects.timeline().to('.calibration>*', { opacity: 0, y: -20, stagger: .04, duration: .35 })
         .to(ui.calibration, { opacity: 0, duration: .55, onComplete: () => ui.calibration.remove() }, .15)
         .set(ui.station, { visibility: 'visible' }, .2).to(ui.station, { opacity: 1, duration: .65 }, .25);
-      tone(42, 1.2, .08, 'sawtooth');
+      audio.tone(42, 1.2, .08, 'sawtooth');
       break;
     case PHASE.POWER_RESTORED:
       document.body.classList.add('powered');
       ui.phase.textContent = '02 // TUNE SIGNAL'; ui.status.textContent = 'CARRIER DETECTED';
-      tone(95, .9, .1, 'sawtooth'); flash();
-      gsap.delayedCall(.65, () => phaseMachine.transition(PHASE.SIGNAL_TUNING, { source: 'power-transition-complete' }));
+      audio.tone(95, .9, .1, 'sawtooth'); effects.flash();
+      effects.delayedCall(.65, () => phaseMachine.transition(PHASE.SIGNAL_TUNING, { source: 'power-transition-complete' }));
       break;
     case PHASE.SIGNAL_TUNING:
       setMission(1);
@@ -146,8 +140,8 @@ const enterPhase = ({ current }) => {
     case PHASE.SIGNAL_LOCKED:
       document.body.classList.add('locked');
       ui.phase.textContent = '03 // TRACK CONTACT'; ui.status.textContent = 'OBJECT MOVING'; ui.entity.textContent = 'UNRESOLVED';
-      tone(46, 1.8, .12, 'sawtooth'); flash();
-      gsap.delayedCall(.75, () => phaseMachine.transition(PHASE.RADAR_TRACKING, { source: 'signal-transition-complete' }));
+      audio.tone(46, 1.8, .12, 'sawtooth'); effects.flash();
+      effects.delayedCall(.75, () => phaseMachine.transition(PHASE.RADAR_TRACKING, { source: 'signal-transition-complete' }));
       break;
     case PHASE.RADAR_TRACKING:
       setMission(2);
@@ -155,8 +149,8 @@ const enterPhase = ({ current }) => {
     case PHASE.VISUAL_CONTACT:
       document.body.classList.add('tracked', 'contact');
       ui.phase.textContent = '04 // FIRST CONTACT'; ui.status.textContent = 'VISUAL LOCK'; ui.entity.textContent = 'LIVING';
-      tone(38, 2, .14, 'sawtooth'); flash();
-      gsap.timeline({ onComplete: () => phaseMachine.transition(PHASE.HAND_SYNC, { source: 'entity-approach-complete' }) })
+      audio.tone(38, 2, .14, 'sawtooth'); effects.flash();
+      effects.timeline({ onComplete: () => phaseMachine.transition(PHASE.HAND_SYNC, { source: 'entity-approach-complete' }) })
         .to(entity.position, { x: 1.6, z: -13.8, duration: 2.5, ease: 'power3.out' })
         .to(arm.rotation, { z: -.1, x: -.32, duration: 2.2, ease: 'power3.inOut' }, 0);
       break;
@@ -165,9 +159,9 @@ const enterPhase = ({ current }) => {
       break;
     case PHASE.CONTACT_ACKNOWLEDGED:
       ui.acknowledge.disabled = true;
-      tone(82, 1.5, .09, 'sine'); ui.status.textContent = 'IT ACKNOWLEDGED YOU';
-      gsap.timeline().to(head.rotation, { y: -.2, x: .06, duration: .55 }).to(head.rotation, { y: 0, x: 0, duration: .8, ease: 'power2.out' });
-      gsap.to(eyeLight, { intensity: 32, duration: .35, yoyo: true, repeat: 1 });
+      audio.tone(82, 1.5, .09, 'sine'); ui.status.textContent = 'IT ACKNOWLEDGED YOU';
+      effects.timeline().to(head.rotation, { y: -.2, x: .06, duration: .55 }).to(head.rotation, { y: 0, x: 0, duration: .8, ease: 'power2.out' });
+      effects.to(eyeLight, { intensity: 32, duration: .35, yoyo: true, repeat: 1 });
       document.querySelector('.response-mission p').textContent = 'THE RESPONSE WAS DELIBERATE';
       break;
     default:
@@ -183,9 +177,9 @@ setTimeout(() => {
   ui.audio.textContent = 'USER GESTURE'; ui.begin.classList.add('ready');
 }, 900);
 
-ui.begin.addEventListener('click', () => {
+input.listen(ui.begin, 'click', async () => {
   if (!phaseMachine.is(PHASE.CALIBRATION)) return;
-  initAudio();
+  await audio.resume();
   phaseMachine.transition(PHASE.POWER_OFF, { source: 'begin-button' });
 });
 
@@ -201,20 +195,20 @@ const updatePower = (value) => {
 };
 const stopLeverDrag = (event) => {
   state.leverDragging = false;
-  if (event?.pointerId != null && ui.handle.hasPointerCapture?.(event.pointerId)) ui.handle.releasePointerCapture(event.pointerId);
+  input.releasePointer(ui.handle, event);
 };
-ui.handle.addEventListener('pointerdown', (event) => {
+input.listen(ui.handle, 'pointerdown', async (event) => {
   if (!phaseMachine.is(PHASE.POWER_OFF)) return;
-  state.leverDragging = true; ui.handle.setPointerCapture(event.pointerId); initAudio(); tone(55, .25, .04, 'square');
+  state.leverDragging = true; input.capturePointer(ui.handle, event); await audio.resume(); audio.tone(55, .25, .04, 'square');
 });
-ui.handle.addEventListener('pointermove', (event) => {
+input.listen(ui.handle, 'pointermove', (event) => {
   if (!state.leverDragging) return;
   const rect = ui.lever.getBoundingClientRect(); updatePower(((event.clientY - rect.top) / rect.height) * 100);
 });
-ui.handle.addEventListener('pointerup', stopLeverDrag);
-ui.handle.addEventListener('pointercancel', stopLeverDrag);
-ui.handle.addEventListener('lostpointercapture', () => { state.leverDragging = false; });
-ui.handle.addEventListener('keydown', (event) => {
+input.listen(ui.handle, 'pointerup', stopLeverDrag);
+input.listen(ui.handle, 'pointercancel', stopLeverDrag);
+input.listen(ui.handle, 'lostpointercapture', () => { state.leverDragging = false; });
+input.listen(ui.handle, 'keydown', (event) => {
   if (!phaseMachine.is(PHASE.POWER_OFF)) return;
   const step = event.shiftKey ? 10 : 5;
   const keys = { ArrowDown: step, ArrowRight: step, ArrowUp: -step, ArrowLeft: -step, Home: -state.power, End: 100 - state.power };
@@ -222,15 +216,15 @@ ui.handle.addEventListener('keydown', (event) => {
   event.preventDefault(); updatePower(state.power + keys[event.key]);
 });
 
-ui.tuner.addEventListener('input', (event) => {
+input.listen(ui.tuner, 'input', (event) => {
   if (!phaseMachine.is(PHASE.SIGNAL_TUNING)) return;
   const value = +event.target.value; const target = 73; const distance = Math.abs(value - target);
   state.signalLock = Math.max(0, 100 - distance * 3.2);
   document.documentElement.style.setProperty('--lock', state.signalLock.toFixed(0));
   ui.frequency.textContent = `${(118.7 + value * 1.37).toFixed(1)}`; ui.signal.textContent = `${Math.round(state.signalLock)}%`;
-  tone(180 + value * 6, .06, .012, state.signalLock > 80 ? 'sine' : 'square');
+  audio.tone(180 + value * 6, .06, .012, state.signalLock > 80 ? 'sine' : 'square');
   entity.position.z = -31 + state.signalLock * .05; eyeLight.intensity = state.signalLock * .05;
-  bloom.strength = (mobile ? .35 : .55) + state.signalLock * .003;
+  effects.setSignalBloom(state.signalLock);
   if (state.signalLock > 97) phaseMachine.transition(PHASE.SIGNAL_LOCKED, { source: 'signal-threshold', value: state.signalLock });
 });
 
@@ -243,66 +237,66 @@ const updateRadarReticle = (event) => {
 };
 const stopRadarDrag = (event) => {
   state.radarDragging = false;
-  if (event?.pointerId != null && ui.radarLock.hasPointerCapture?.(event.pointerId)) ui.radarLock.releasePointerCapture(event.pointerId);
+  input.releasePointer(ui.radarLock, event);
 };
-ui.radarLock.addEventListener('pointerdown', (event) => {
+input.listen(ui.radarLock, 'pointerdown', async (event) => {
   if (!phaseMachine.is(PHASE.RADAR_TRACKING)) return;
-  state.radarDragging = true; ui.radarLock.setPointerCapture(event.pointerId); initAudio();
+  state.radarDragging = true; input.capturePointer(ui.radarLock, event); await audio.resume();
 });
-ui.radarLock.addEventListener('pointermove', updateRadarReticle);
-ui.radarLock.addEventListener('pointerup', stopRadarDrag);
-ui.radarLock.addEventListener('pointercancel', stopRadarDrag);
-ui.radarLock.addEventListener('lostpointercapture', () => { state.radarDragging = false; });
+input.listen(ui.radarLock, 'pointermove', updateRadarReticle);
+input.listen(ui.radarLock, 'pointerup', stopRadarDrag);
+input.listen(ui.radarLock, 'pointercancel', stopRadarDrag);
+input.listen(ui.radarLock, 'lostpointercapture', () => { state.radarDragging = false; });
 
 let contactTimer;
 const cancelContactHold = (event) => {
   clearInterval(contactTimer); state.contactHolding = false;
-  if (event?.pointerId != null && ui.contactPad.hasPointerCapture?.(event.pointerId)) ui.contactPad.releasePointerCapture(event.pointerId);
+  input.releasePointer(ui.contactPad, event);
   if (!state.contactSynchronized) {
     state.hold = 0; document.documentElement.style.setProperty('--contact', '0');
     ui.contactPad.querySelector('span').textContent = 'PLACE HAND HERE';
-    handLight.intensity = 0; bloom.strength = mobile ? .35 : .55;
+    handLight.intensity = 0; effects.resetBloom();
   }
 };
-ui.contactPad.addEventListener('pointerdown', (event) => {
+input.listen(ui.contactPad, 'pointerdown', async (event) => {
   if (!phaseMachine.is(PHASE.HAND_SYNC) || state.contactSynchronized || state.contactHolding) return;
-  initAudio(); clearInterval(contactTimer); state.contactHolding = true; state.hold = 0;
-  ui.contactPad.setPointerCapture(event.pointerId);
+  await audio.resume(); clearInterval(contactTimer); state.contactHolding = true; state.hold = 0;
+  input.capturePointer(ui.contactPad, event);
   contactTimer = setInterval(() => {
     state.hold = Math.min(100, state.hold + 4);
     document.documentElement.style.setProperty('--contact', state.hold.toFixed(0));
     ui.contactPad.querySelector('span').textContent = `SYNCHRONIZING ${state.hold}%`;
-    handLight.intensity = state.hold * .18; bloom.strength = (mobile ? .35 : .55) + state.hold * .009;
+    handLight.intensity = state.hold * .18; effects.setContactBloom(state.hold);
     if (state.hold >= 100) {
       clearInterval(contactTimer); state.contactHolding = false; state.contactSynchronized = true; document.body.classList.add('synchronized');
       ui.phase.textContent = '05 // CONTACT'; ui.status.textContent = 'SYNCHRONIZED'; ui.contactPad.querySelector('span').textContent = 'CONTACT ESTABLISHED';
-      tone(76, 1.8, .11, 'sine'); flash();
-      gsap.timeline({ onComplete: () => setMission(4) })
+      audio.tone(76, 1.8, .11, 'sine'); effects.flash();
+      effects.timeline({ onComplete: () => setMission(4) })
         .to(arm.position, { x: .5, y: .15, z: 1.4, duration: 1.2, ease: 'power3.out' })
         .to(head.rotation, { y: -.12, duration: .55, yoyo: true, repeat: 1 }, 0);
     }
   }, 45);
 });
-ui.contactPad.addEventListener('pointerup', cancelContactHold);
-ui.contactPad.addEventListener('pointercancel', cancelContactHold);
-ui.contactPad.addEventListener('lostpointercapture', () => cancelContactHold());
+input.listen(ui.contactPad, 'pointerup', cancelContactHold);
+input.listen(ui.contactPad, 'pointercancel', cancelContactHold);
+input.listen(ui.contactPad, 'lostpointercapture', () => cancelContactHold());
 
-ui.acknowledge.addEventListener('click', () => {
+input.listen(ui.acknowledge, 'click', () => {
   if (!phaseMachine.is(PHASE.HAND_SYNC) || !state.contactSynchronized) return;
   phaseMachine.transition(PHASE.CONTACT_ACKNOWLEDGED, { source: 'acknowledge-button' });
 });
 
-addEventListener('pointermove', (event) => {
-  state.pointerX = event.clientX / innerWidth * 2 - 1;
-  state.pointerY = -(event.clientY / innerHeight) * 2 + 1;
-});
-
-document.addEventListener('visibilitychange', () => {
-  state.paused = document.hidden;
-  if (document.hidden) state.audio?.suspend(); else { state.audio?.resume(); clock.getDelta(); }
+input.bindPointerPosition(({ x, y }) => {
+  state.pointerX = x;
+  state.pointerY = y;
 });
 
 const clock = new THREE.Clock();
+input.bindVisibility(async (hidden) => {
+  state.paused = hidden;
+  if (hidden) await audio.suspend(); else { await audio.resume(); clock.getDelta(); }
+});
+
 function render() {
   const delta = Math.min(clock.getDelta(), .05);
   const time = clock.elapsedTime;
@@ -334,7 +328,7 @@ function render() {
 }
 render();
 
-addEventListener('resize', () => {
+input.listen(window, 'resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 760 ? 1.1 : 1.6));
