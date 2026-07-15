@@ -7,6 +7,7 @@ import { createAudioController } from './audioController.js';
 import { createEffectsController } from './effectsController.js';
 import { createExperienceStateMachine, PHASE } from './experienceState.js';
 import { createInputController } from './inputController.js';
+import { advanceTrackingQuality, getTrackingProximity } from './trackingModel.js';
 
 const mobile = innerWidth < 760;
 const canvas = document.querySelector('#webgl');
@@ -111,7 +112,7 @@ const ui = {
 const state = {
   power: 0, signalLock: 0, leverDragging: false, radarDragging: false, contactHolding: false,
   pointerX: 0, pointerY: 0, targetX: 72, targetY: 34, reticleX: 30, reticleY: 68,
-  trackQuality: 0, hold: 0, contactSynchronized: false, paused: false,
+  trackQuality: 0, trackAcquiring: false, hold: 0, contactSynchronized: false, paused: false,
 };
 
 const setMission = (index) => ui.missions.forEach((mission, missionIndex) => mission.classList.toggle('active', index === missionIndex));
@@ -144,9 +145,11 @@ const enterPhase = ({ current }) => {
       effects.delayedCall(.75, () => phaseMachine.transition(PHASE.RADAR_TRACKING, { source: 'signal-transition-complete' }));
       break;
     case PHASE.RADAR_TRACKING:
+      ui.status.textContent = 'ALIGN RETICLE';
       setMission(2);
       break;
     case PHASE.VISUAL_CONTACT:
+      ui.radar.classList.remove('acquiring');
       document.body.classList.add('tracked', 'contact');
       ui.phase.textContent = '04 // FIRST CONTACT'; ui.status.textContent = 'VISUAL LOCK'; ui.entity.textContent = 'LIVING';
       audio.tone(38, 2, .14, 'sawtooth'); effects.flash();
@@ -228,25 +231,47 @@ input.listen(ui.tuner, 'input', (event) => {
   if (state.signalLock > 97) phaseMachine.transition(PHASE.SIGNAL_LOCKED, { source: 'signal-threshold', value: state.signalLock });
 });
 
+const setRadarReticle = (x, y) => {
+  state.reticleX = THREE.MathUtils.clamp(x, 4, 96);
+  state.reticleY = THREE.MathUtils.clamp(y, 4, 96);
+  ui.radarLock.style.left = `${state.reticleX}%`;
+  ui.radarLock.style.top = `${state.reticleY}%`;
+};
 const updateRadarReticle = (event) => {
   if (!state.radarDragging || !phaseMachine.is(PHASE.RADAR_TRACKING)) return;
   const rect = ui.radar.getBoundingClientRect();
-  state.reticleX = THREE.MathUtils.clamp(((event.clientX - rect.left) / rect.width) * 100, 4, 96);
-  state.reticleY = THREE.MathUtils.clamp(((event.clientY - rect.top) / rect.height) * 100, 4, 96);
-  ui.radarLock.style.left = `${state.reticleX}%`; ui.radarLock.style.top = `${state.reticleY}%`;
+  setRadarReticle(
+    ((event.clientX - rect.left) / rect.width) * 100,
+    ((event.clientY - rect.top) / rect.height) * 100,
+  );
 };
 const stopRadarDrag = (event) => {
   state.radarDragging = false;
-  input.releasePointer(ui.radarLock, event);
+  input.releasePointer(ui.radar, event);
 };
-input.listen(ui.radarLock, 'pointerdown', async (event) => {
+input.listen(ui.radar, 'pointerdown', (event) => {
   if (!phaseMachine.is(PHASE.RADAR_TRACKING)) return;
-  state.radarDragging = true; input.capturePointer(ui.radarLock, event); await audio.resume();
+  state.radarDragging = true;
+  input.capturePointer(ui.radar, event);
+  updateRadarReticle(event);
+  void audio.resume();
 });
-input.listen(ui.radarLock, 'pointermove', updateRadarReticle);
-input.listen(ui.radarLock, 'pointerup', stopRadarDrag);
-input.listen(ui.radarLock, 'pointercancel', stopRadarDrag);
-input.listen(ui.radarLock, 'lostpointercapture', () => { state.radarDragging = false; });
+input.listen(ui.radar, 'pointermove', updateRadarReticle);
+input.listen(ui.radar, 'pointerup', stopRadarDrag);
+input.listen(ui.radar, 'pointercancel', stopRadarDrag);
+input.listen(ui.radar, 'lostpointercapture', () => { state.radarDragging = false; });
+input.listen(ui.radarLock, 'keydown', (event) => {
+  if (!phaseMachine.is(PHASE.RADAR_TRACKING)) return;
+  const step = event.shiftKey ? 5 : 2;
+  const keys = {
+    ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step],
+  };
+  if (!(event.key in keys)) return;
+  event.preventDefault();
+  const [x, y] = keys[event.key];
+  setRadarReticle(state.reticleX + x, state.reticleY + y);
+  void audio.resume();
+});
 
 let contactTimer;
 const cancelContactHold = (event) => {
@@ -303,18 +328,25 @@ function render() {
   if (!state.paused) {
     dust.rotation.y = time * .002; dust.position.y = Math.sin(time * .2) * .08;
     if (phaseMachine.is(PHASE.RADAR_TRACKING)) {
-      state.targetX = 50 + Math.sin(time * .73) * 30;
-      state.targetY = 50 + Math.cos(time * .91) * 27;
+      state.targetX = 50 + Math.sin(time * .42) * 26;
+      state.targetY = 50 + Math.cos(time * .55) * 23;
       ui.radarTarget.style.left = `${state.targetX}%`; ui.radarTarget.style.top = `${state.targetY}%`;
+
       const distance = Math.hypot(state.targetX - state.reticleX, state.targetY - state.reticleY);
-      const quality = Math.max(0, 100 - distance * 4.2);
-      const smoothing = 1 - Math.exp(-8 * delta);
-      state.trackQuality += (quality - state.trackQuality) * smoothing;
-      state.trackQuality += (state.trackQuality > 78 ? 25 : -10) * delta;
-      state.trackQuality = THREE.MathUtils.clamp(state.trackQuality, 0, 100);
+      const proximity = getTrackingProximity(distance);
+      const acquiring = proximity > 0;
+
+      if (acquiring !== state.trackAcquiring) {
+        state.trackAcquiring = acquiring;
+        ui.radar.classList.toggle('acquiring', acquiring);
+        ui.status.textContent = acquiring ? 'HOLD STEADY' : 'ALIGN RETICLE';
+        if (acquiring) audio.tone(320, .12, .025, 'sine');
+      }
+
+      state.trackQuality = advanceTrackingQuality(state.trackQuality, distance, delta);
       ui.trackValue.textContent = `${Math.round(state.trackQuality)}%`; ui.trackConsole.textContent = `${Math.round(state.trackQuality)}%`;
       document.documentElement.style.setProperty('--track', state.trackQuality.toFixed(0));
-      if (state.trackQuality >= 99.5) phaseMachine.transition(PHASE.VISUAL_CONTACT, { source: 'tracking-threshold', value: state.trackQuality });
+      if (state.trackQuality >= 100) phaseMachine.transition(PHASE.VISUAL_CONTACT, { source: 'tracking-threshold', value: state.trackQuality });
     }
     if (phaseMachine.is(PHASE.VISUAL_CONTACT, PHASE.HAND_SYNC, PHASE.CONTACT_ACKNOWLEDGED)) {
       head.rotation.y += ((state.pointerX * .16) - head.rotation.y) * (1 - Math.exp(-2.2 * delta));
