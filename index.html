@@ -23,16 +23,16 @@
   </section>
 
   <main class="station" aria-hidden="true">
-    <header><b>ORBITAL RELAY 07</b><span class="phase">01 // RESTORE POWER</span><i class="status">NO POWER</i></header>
+    <header><b>ORBITAL RELAY 07</b><span class="phase" aria-live="polite">01 // RESTORE POWER</span><i class="status" aria-live="polite">NO POWER</i></header>
 
     <section class="mission power-mission active">
       <p>MANUAL OVERRIDE REQUIRED</p>
       <h2>WAKE THE<br>DEAD STATION.</h2>
-      <div class="lever" role="slider" aria-label="Main power lever" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="lever">
         <div class="lever-track"><i></i></div>
-        <button class="lever-handle" type="button"><span>MAIN POWER</span></button>
+        <button class="lever-handle" type="button" role="slider" aria-label="Main power" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span>MAIN POWER</span></button>
       </div>
-      <small>DRAG THE LEVER DOWN</small>
+      <small>DRAG THE LEVER DOWN OR USE ARROW KEYS</small>
     </section>
 
     <section class="mission signal-mission">
@@ -55,7 +55,7 @@
         <div class="radar-sweep"></div>
         <div class="radar-target"></div>
         <button class="radar-lock" type="button" aria-label="Tracking reticle"><span></span></button>
-        <div class="radar-readout"><span>TRACK QUALITY</span><b class="track-value">0%</b></div>
+        <div class="radar-readout"><span>TRACK QUALITY</span><b class="track-value" aria-live="polite">0%</b></div>
       </div>
       <small>DRAG THE RETICLE OVER THE MOVING CONTACT AND HOLD IT THERE</small>
     </section>
@@ -69,11 +69,11 @@
 
     <section class="mission response-mission">
       <p>CONTACT SYNCHRONIZED</p>
-      <h2>IT KNOWS<br>YOU CAME<br>BACK.</h2>
+      <h2>IT KNOWS<br>YOU ARE<br>HERE.</h2>
       <button class="acknowledge" type="button">ACKNOWLEDGE CONTACT</button>
     </section>
 
-    <aside class="console">
+    <aside class="console" aria-live="polite">
       <div><span>POWER</span><b class="power-value">0%</b></div>
       <div><span>SIGNAL</span><b class="signal-value">0%</b></div>
       <div><span>TRACK</span><b class="track-console">0%</b></div>
@@ -82,7 +82,6 @@
     <p class="hint">PHYSICAL INPUT REQUIRED · HEADPHONES RECOMMENDED</p>
   </main>
 
-  <script>document.querySelector('.contact-pad').setPointerCapture = () => {};</script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
