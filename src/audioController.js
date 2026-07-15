@@ -5,6 +5,7 @@ export function createAudioController() {
     if (!context) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) return null;
+      if (navigator.userActivation && !navigator.userActivation.isActive) return null;
       context = new AudioContextClass();
     }
     return context;
@@ -12,14 +13,18 @@ export function createAudioController() {
 
   return Object.freeze({
     async resume() {
-      const audioContext = ensureContext();
+      const audioContext = context ?? ensureContext();
       if (!audioContext) return false;
-      if (audioContext.state !== 'running') await audioContext.resume();
-      return audioContext.state === 'running';
+      if (audioContext.state !== 'running') {
+        audioContext.resume().catch(() => {});
+      }
+      return true;
     },
 
     async suspend() {
-      if (context?.state === 'running') await context.suspend();
+      if (context?.state === 'running') {
+        await context.suspend().catch(() => {});
+      }
     },
 
     tone(frequency = 70, duration = 0.4, gain = 0.04, type = 'sine') {
