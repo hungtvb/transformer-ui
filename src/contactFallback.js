@@ -1,3 +1,5 @@
+import { isContactReady } from './contactState.js';
+
 const body = document.body;
 const pad = document.querySelector('.contact-pad');
 const acknowledge = document.querySelector('.acknowledge');
@@ -15,10 +17,12 @@ if (pad && acknowledge) {
     missions.forEach((mission, missionIndex) => mission.classList.toggle('active', missionIndex === index));
   };
 
+  const hasSynchronized = () => synchronized || body.classList.contains('synchronized');
+
   const resetHold = () => {
     clearInterval(timer);
     timer = null;
-    if (synchronized) return;
+    if (hasSynchronized()) return;
     progress = 0;
     document.documentElement.style.setProperty('--contact', '0');
     pad.querySelector('span').textContent = 'PLACE HAND HERE';
@@ -35,13 +39,15 @@ if (pad && acknowledge) {
     status.textContent = 'SYNCHRONIZED';
     pad.querySelector('span').textContent = 'CONTACT ESTABLISHED';
     setMission(4);
+    document.dispatchEvent(new CustomEvent('project-titan:contact-synchronized', {
+      detail: { source: 'fallback' },
+    }));
   };
 
   const startHold = (event) => {
-    if (body.dataset.phase !== 'HAND_SYNC' || synchronized || timer) return;
+    if (body.dataset.phase !== 'HAND_SYNC' || hasSynchronized() || timer) return;
     event.preventDefault();
     progress = 0;
-    pad.setPointerCapture?.(event.pointerId);
     timer = window.setInterval(() => {
       progress = Math.min(100, progress + 5);
       document.documentElement.style.setProperty('--contact', String(progress));
@@ -50,11 +56,15 @@ if (pad && acknowledge) {
     }, 45);
   };
 
-  pad.addEventListener('pointerdown', startHold, { capture: true });
-  pad.addEventListener('touchstart', startHold, { capture: true, passive: false });
-  pad.addEventListener('pointerup', resetHold, { capture: true });
-  pad.addEventListener('pointercancel', resetHold, { capture: true });
-  pad.addEventListener('touchend', resetHold, { capture: true });
+  if ('PointerEvent' in window) {
+    pad.addEventListener('pointerdown', startHold, { capture: true });
+    pad.addEventListener('pointerup', resetHold, { capture: true });
+    pad.addEventListener('pointercancel', resetHold, { capture: true });
+  } else {
+    pad.addEventListener('touchstart', startHold, { capture: true, passive: false });
+    pad.addEventListener('touchend', resetHold, { capture: true });
+    pad.addEventListener('touchcancel', resetHold, { capture: true });
+  }
 
   const syncPhaseUi = () => {
     if (body.dataset.phase === 'VISUAL_CONTACT') {
@@ -75,11 +85,27 @@ if (pad && acknowledge) {
   });
   syncPhaseUi();
 
-  acknowledge.addEventListener('click', () => {
-    if (!synchronized) return;
+  acknowledge.addEventListener('click', (event) => {
+    const ready = isContactReady({
+      phase: body.dataset.phase,
+      runtimeSynchronized: synchronized,
+      bodySynchronized: body.classList.contains('synchronized'),
+    });
+    if (!ready) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    synchronized = true;
     acknowledge.disabled = true;
+    acknowledge.textContent = 'CONTACT ACKNOWLEDGED';
+    body.dataset.phase = 'CONTACT_ACKNOWLEDGED';
     body.classList.add('contact-acknowledged');
+    phaseLabel.textContent = '05 // CONTACT';
     status.textContent = 'IT ACKNOWLEDGED YOU';
     responseLabel.textContent = 'THE RESPONSE WAS DELIBERATE';
+    setMission(4);
+    document.dispatchEvent(new CustomEvent('project-titan:contact-acknowledged', {
+      detail: { source: 'fallback-bridge' },
+    }));
   }, { capture: true });
 }
