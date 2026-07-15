@@ -40,16 +40,23 @@ export function createPhaseDirector({
         effects.flash();
         effects.delayedCall(0.75, () => onAdvance(PHASE.RADAR_TRACKING, 'signal-transition-complete'));
         break;
-      case PHASE.VISUAL_CONTACT:
-        ui.radar.classList.remove('acquiring');
-        body.classList.add('tracked', 'contact', 'contact-reveal');
-        audio.tone(38, 2.4, 0.14, 'sawtooth');
-        effects.flash();
-        effects.timeline({ onComplete: () => {
+      case PHASE.VISUAL_CONTACT: {
+        let revealFinished = false;
+        const finishReveal = () => {
+          if (revealFinished) return;
+          revealFinished = true;
           body.classList.remove('contact-reveal');
           body.classList.add('contact-present');
           onAdvance(PHASE.HAND_SYNC, 'entity-approach-complete');
-        } })
+        };
+
+        ui.radar.classList.remove('acquiring');
+        ui.contactPad.disabled = true;
+        body.classList.add('tracked', 'contact', 'contact-reveal');
+        audio.tone(38, 2.4, 0.14, 'sawtooth');
+        effects.flash();
+        effects.delayedCall(3.5, finishReveal);
+        effects.timeline({ onComplete: finishReveal })
           .to(eyeLight, { intensity: 0, duration: 0.12 }, 0)
           .to(entity.position, { x: 2.7, z: -18.5, duration: 1.15, ease: 'power2.in' }, 0)
           .to(entity.rotation, { y: -0.08, duration: 1.15, ease: 'power2.in' }, 0)
@@ -62,7 +69,9 @@ export function createPhaseDirector({
           .to(head.rotation, { x: 0, y: 0, duration: 1.1, ease: 'power2.out' }, 2.05)
           .to(arm.rotation, { z: -0.1, x: -0.32, duration: 2.1, ease: 'power3.inOut' }, 1.02);
         break;
+      }
       case PHASE.HAND_SYNC:
+        ui.contactPad.disabled = false;
         body.classList.add('contact-ready');
         effects.to(eyeLight, { intensity: 13, duration: 0.8, ease: 'power2.out' });
         audio.tone(112, 0.45, 0.035, 'sine');
