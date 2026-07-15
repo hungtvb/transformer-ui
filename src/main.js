@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { createExperienceStateMachine, PHASE } from './experienceState.js';
 
 const mobile = innerWidth < 760;
 const canvas = document.querySelector('#webgl');
@@ -100,10 +101,11 @@ const ui = {
   contactPad: document.querySelector('.contact-pad'), acknowledge: document.querySelector('.acknowledge'),
   missions: [...document.querySelectorAll('.mission')],
 };
+
 const state = {
-  entered: false, power: 0, signalLock: 0, leverDragging: false, radarDragging: false, contactHolding: false,
-  pointerX: 0, pointerY: 0, audio: null, tracking: false, tracked: false, contact: false, acknowledged: false,
-  targetX: 72, targetY: 34, reticleX: 30, reticleY: 68, trackQuality: 0, hold: 0, paused: false,
+  power: 0, signalLock: 0, leverDragging: false, radarDragging: false, contactHolding: false,
+  pointerX: 0, pointerY: 0, audio: null, targetX: 72, targetY: 34, reticleX: 30, reticleY: 68,
+  trackQuality: 0, hold: 0, contactSynchronized: false, paused: false,
 };
 
 const initAudio = () => {
@@ -120,6 +122,61 @@ const tone = (frequency = 70, duration = .4, gain = .04, type = 'sine') => {
 const flash = () => gsap.fromTo('.flash', { opacity: .7 }, { opacity: 0, duration: .6 });
 const setMission = (index) => ui.missions.forEach((mission, missionIndex) => mission.classList.toggle('active', index === missionIndex));
 
+let phaseMachine;
+const enterPhase = ({ current }) => {
+  document.body.dataset.phase = current;
+
+  switch (current) {
+    case PHASE.POWER_OFF:
+      ui.station.setAttribute('aria-hidden', 'false');
+      gsap.timeline().to('.calibration>*', { opacity: 0, y: -20, stagger: .04, duration: .35 })
+        .to(ui.calibration, { opacity: 0, duration: .55, onComplete: () => ui.calibration.remove() }, .15)
+        .set(ui.station, { visibility: 'visible' }, .2).to(ui.station, { opacity: 1, duration: .65 }, .25);
+      tone(42, 1.2, .08, 'sawtooth');
+      break;
+    case PHASE.POWER_RESTORED:
+      document.body.classList.add('powered');
+      ui.phase.textContent = '02 // TUNE SIGNAL'; ui.status.textContent = 'CARRIER DETECTED';
+      tone(95, .9, .1, 'sawtooth'); flash();
+      gsap.delayedCall(.65, () => phaseMachine.transition(PHASE.SIGNAL_TUNING, { source: 'power-transition-complete' }));
+      break;
+    case PHASE.SIGNAL_TUNING:
+      setMission(1);
+      break;
+    case PHASE.SIGNAL_LOCKED:
+      document.body.classList.add('locked');
+      ui.phase.textContent = '03 // TRACK CONTACT'; ui.status.textContent = 'OBJECT MOVING'; ui.entity.textContent = 'UNRESOLVED';
+      tone(46, 1.8, .12, 'sawtooth'); flash();
+      gsap.delayedCall(.75, () => phaseMachine.transition(PHASE.RADAR_TRACKING, { source: 'signal-transition-complete' }));
+      break;
+    case PHASE.RADAR_TRACKING:
+      setMission(2);
+      break;
+    case PHASE.VISUAL_CONTACT:
+      document.body.classList.add('tracked', 'contact');
+      ui.phase.textContent = '04 // FIRST CONTACT'; ui.status.textContent = 'VISUAL LOCK'; ui.entity.textContent = 'LIVING';
+      tone(38, 2, .14, 'sawtooth'); flash();
+      gsap.timeline({ onComplete: () => phaseMachine.transition(PHASE.HAND_SYNC, { source: 'entity-approach-complete' }) })
+        .to(entity.position, { x: 1.6, z: -13.8, duration: 2.5, ease: 'power3.out' })
+        .to(arm.rotation, { z: -.1, x: -.32, duration: 2.2, ease: 'power3.inOut' }, 0);
+      break;
+    case PHASE.HAND_SYNC:
+      setMission(3);
+      break;
+    case PHASE.CONTACT_ACKNOWLEDGED:
+      ui.acknowledge.disabled = true;
+      tone(82, 1.5, .09, 'sine'); ui.status.textContent = 'IT ACKNOWLEDGED YOU';
+      gsap.timeline().to(head.rotation, { y: -.2, x: .06, duration: .55 }).to(head.rotation, { y: 0, x: 0, duration: .8, ease: 'power2.out' });
+      gsap.to(eyeLight, { intensity: 32, duration: .35, yoyo: true, repeat: 1 });
+      document.querySelector('.response-mission p').textContent = 'THE RESPONSE WAS DELIBERATE';
+      break;
+    default:
+      break;
+  }
+};
+
+phaseMachine = createExperienceStateMachine({ onTransition: enterPhase });
+
 setTimeout(() => {
   ui.gpu.textContent = renderer.capabilities.isWebGL2 ? 'WEBGL2 READY' : 'COMPATIBLE';
   ui.input.textContent = ('ontouchstart' in window) ? 'TOUCH READY' : 'POINTER READY';
@@ -127,31 +184,27 @@ setTimeout(() => {
 }, 900);
 
 ui.begin.addEventListener('click', () => {
-  if (state.entered) return;
-  initAudio(); state.entered = true; ui.station.setAttribute('aria-hidden', 'false');
-  gsap.timeline().to('.calibration>*', { opacity: 0, y: -20, stagger: .04, duration: .35 })
-    .to(ui.calibration, { opacity: 0, duration: .55, onComplete: () => ui.calibration.remove() }, .15)
-    .set(ui.station, { visibility: 'visible' }, .2).to(ui.station, { opacity: 1, duration: .65 }, .25);
-  tone(42, 1.2, .08, 'sawtooth');
+  if (!phaseMachine.is(PHASE.CALIBRATION)) return;
+  initAudio();
+  phaseMachine.transition(PHASE.POWER_OFF, { source: 'begin-button' });
 });
 
 const updatePower = (value) => {
+  if (!phaseMachine.is(PHASE.POWER_OFF)) return;
   state.power = THREE.MathUtils.clamp(value, 0, 100);
   document.documentElement.style.setProperty('--power', state.power.toFixed(0));
   ui.power.textContent = `${Math.round(state.power)}%`; ui.handle.setAttribute('aria-valuenow', Math.round(state.power));
   roomLight.intensity = .12 + state.power * .012; deskLight.intensity = state.power * .06;
   warningLights.forEach((light, index) => light.intensity = state.power > 20 ? (1.2 + Math.sin(performance.now() * .006 + index) * .4) * state.power * .035 : 0);
   renderer.toneMappingExposure = .72 + state.power * .006;
-  if (state.power >= 96 && !document.body.classList.contains('powered')) {
-    document.body.classList.add('powered'); ui.phase.textContent = '02 // TUNE SIGNAL'; ui.status.textContent = 'CARRIER DETECTED';
-    tone(95, .9, .1, 'sawtooth'); flash(); gsap.delayedCall(.65, () => setMission(1));
-  }
+  if (state.power >= 96) phaseMachine.transition(PHASE.POWER_RESTORED, { source: 'power-threshold', value: state.power });
 };
 const stopLeverDrag = (event) => {
   state.leverDragging = false;
   if (event?.pointerId != null && ui.handle.hasPointerCapture?.(event.pointerId)) ui.handle.releasePointerCapture(event.pointerId);
 };
 ui.handle.addEventListener('pointerdown', (event) => {
+  if (!phaseMachine.is(PHASE.POWER_OFF)) return;
   state.leverDragging = true; ui.handle.setPointerCapture(event.pointerId); initAudio(); tone(55, .25, .04, 'square');
 });
 ui.handle.addEventListener('pointermove', (event) => {
@@ -162,6 +215,7 @@ ui.handle.addEventListener('pointerup', stopLeverDrag);
 ui.handle.addEventListener('pointercancel', stopLeverDrag);
 ui.handle.addEventListener('lostpointercapture', () => { state.leverDragging = false; });
 ui.handle.addEventListener('keydown', (event) => {
+  if (!phaseMachine.is(PHASE.POWER_OFF)) return;
   const step = event.shiftKey ? 10 : 5;
   const keys = { ArrowDown: step, ArrowRight: step, ArrowUp: -step, ArrowLeft: -step, Home: -state.power, End: 100 - state.power };
   if (!(event.key in keys)) return;
@@ -169,6 +223,7 @@ ui.handle.addEventListener('keydown', (event) => {
 });
 
 ui.tuner.addEventListener('input', (event) => {
+  if (!phaseMachine.is(PHASE.SIGNAL_TUNING)) return;
   const value = +event.target.value; const target = 73; const distance = Math.abs(value - target);
   state.signalLock = Math.max(0, 100 - distance * 3.2);
   document.documentElement.style.setProperty('--lock', state.signalLock.toFixed(0));
@@ -176,15 +231,11 @@ ui.tuner.addEventListener('input', (event) => {
   tone(180 + value * 6, .06, .012, state.signalLock > 80 ? 'sine' : 'square');
   entity.position.z = -31 + state.signalLock * .05; eyeLight.intensity = state.signalLock * .05;
   bloom.strength = (mobile ? .35 : .55) + state.signalLock * .003;
-  if (state.signalLock > 97 && !state.tracking) {
-    state.tracking = true; document.body.classList.add('locked');
-    ui.phase.textContent = '03 // TRACK CONTACT'; ui.status.textContent = 'OBJECT MOVING'; ui.entity.textContent = 'UNRESOLVED';
-    tone(46, 1.8, .12, 'sawtooth'); flash(); gsap.delayedCall(.75, () => setMission(2));
-  }
+  if (state.signalLock > 97) phaseMachine.transition(PHASE.SIGNAL_LOCKED, { source: 'signal-threshold', value: state.signalLock });
 });
 
 const updateRadarReticle = (event) => {
-  if (!state.radarDragging || state.tracked) return;
+  if (!state.radarDragging || !phaseMachine.is(PHASE.RADAR_TRACKING)) return;
   const rect = ui.radar.getBoundingClientRect();
   state.reticleX = THREE.MathUtils.clamp(((event.clientX - rect.left) / rect.width) * 100, 4, 96);
   state.reticleY = THREE.MathUtils.clamp(((event.clientY - rect.top) / rect.height) * 100, 4, 96);
@@ -195,6 +246,7 @@ const stopRadarDrag = (event) => {
   if (event?.pointerId != null && ui.radarLock.hasPointerCapture?.(event.pointerId)) ui.radarLock.releasePointerCapture(event.pointerId);
 };
 ui.radarLock.addEventListener('pointerdown', (event) => {
+  if (!phaseMachine.is(PHASE.RADAR_TRACKING)) return;
   state.radarDragging = true; ui.radarLock.setPointerCapture(event.pointerId); initAudio();
 });
 ui.radarLock.addEventListener('pointermove', updateRadarReticle);
@@ -202,28 +254,18 @@ ui.radarLock.addEventListener('pointerup', stopRadarDrag);
 ui.radarLock.addEventListener('pointercancel', stopRadarDrag);
 ui.radarLock.addEventListener('lostpointercapture', () => { state.radarDragging = false; });
 
-const completeTracking = () => {
-  if (state.tracked) return;
-  state.tracked = true; document.body.classList.add('tracked', 'contact');
-  ui.phase.textContent = '04 // FIRST CONTACT'; ui.status.textContent = 'VISUAL LOCK'; ui.entity.textContent = 'LIVING';
-  tone(38, 2, .14, 'sawtooth'); flash();
-  gsap.timeline({ onComplete: () => setMission(3) })
-    .to(entity.position, { x: 1.6, z: -13.8, duration: 2.5, ease: 'power3.out' })
-    .to(arm.rotation, { z: -.1, x: -.32, duration: 2.2, ease: 'power3.inOut' }, 0);
-};
-
 let contactTimer;
 const cancelContactHold = (event) => {
   clearInterval(contactTimer); state.contactHolding = false;
   if (event?.pointerId != null && ui.contactPad.hasPointerCapture?.(event.pointerId)) ui.contactPad.releasePointerCapture(event.pointerId);
-  if (!state.contact) {
+  if (!state.contactSynchronized) {
     state.hold = 0; document.documentElement.style.setProperty('--contact', '0');
     ui.contactPad.querySelector('span').textContent = 'PLACE HAND HERE';
     handLight.intensity = 0; bloom.strength = mobile ? .35 : .55;
   }
 };
 ui.contactPad.addEventListener('pointerdown', (event) => {
-  if (state.contact || state.contactHolding) return;
+  if (!phaseMachine.is(PHASE.HAND_SYNC) || state.contactSynchronized || state.contactHolding) return;
   initAudio(); clearInterval(contactTimer); state.contactHolding = true; state.hold = 0;
   ui.contactPad.setPointerCapture(event.pointerId);
   contactTimer = setInterval(() => {
@@ -232,7 +274,7 @@ ui.contactPad.addEventListener('pointerdown', (event) => {
     ui.contactPad.querySelector('span').textContent = `SYNCHRONIZING ${state.hold}%`;
     handLight.intensity = state.hold * .18; bloom.strength = (mobile ? .35 : .55) + state.hold * .009;
     if (state.hold >= 100) {
-      clearInterval(contactTimer); state.contactHolding = false; state.contact = true; document.body.classList.add('synchronized');
+      clearInterval(contactTimer); state.contactHolding = false; state.contactSynchronized = true; document.body.classList.add('synchronized');
       ui.phase.textContent = '05 // CONTACT'; ui.status.textContent = 'SYNCHRONIZED'; ui.contactPad.querySelector('span').textContent = 'CONTACT ESTABLISHED';
       tone(76, 1.8, .11, 'sine'); flash();
       gsap.timeline({ onComplete: () => setMission(4) })
@@ -246,12 +288,8 @@ ui.contactPad.addEventListener('pointercancel', cancelContactHold);
 ui.contactPad.addEventListener('lostpointercapture', () => cancelContactHold());
 
 ui.acknowledge.addEventListener('click', () => {
-  if (state.acknowledged) return;
-  state.acknowledged = true; ui.acknowledge.disabled = true;
-  tone(82, 1.5, .09, 'sine'); ui.status.textContent = 'IT ACKNOWLEDGED YOU';
-  gsap.timeline().to(head.rotation, { y: -.2, x: .06, duration: .55 }).to(head.rotation, { y: 0, x: 0, duration: .8, ease: 'power2.out' });
-  gsap.to(eyeLight, { intensity: 32, duration: .35, yoyo: true, repeat: 1 });
-  document.querySelector('.response-mission p').textContent = 'THE RESPONSE WAS DELIBERATE';
+  if (!phaseMachine.is(PHASE.HAND_SYNC) || !state.contactSynchronized) return;
+  phaseMachine.transition(PHASE.CONTACT_ACKNOWLEDGED, { source: 'acknowledge-button' });
 });
 
 addEventListener('pointermove', (event) => {
@@ -270,7 +308,7 @@ function render() {
   const time = clock.elapsedTime;
   if (!state.paused) {
     dust.rotation.y = time * .002; dust.position.y = Math.sin(time * .2) * .08;
-    if (state.tracking && !state.tracked) {
+    if (phaseMachine.is(PHASE.RADAR_TRACKING)) {
       state.targetX = 50 + Math.sin(time * .73) * 30;
       state.targetY = 50 + Math.cos(time * .91) * 27;
       ui.radarTarget.style.left = `${state.targetX}%`; ui.radarTarget.style.top = `${state.targetY}%`;
@@ -282,9 +320,9 @@ function render() {
       state.trackQuality = THREE.MathUtils.clamp(state.trackQuality, 0, 100);
       ui.trackValue.textContent = `${Math.round(state.trackQuality)}%`; ui.trackConsole.textContent = `${Math.round(state.trackQuality)}%`;
       document.documentElement.style.setProperty('--track', state.trackQuality.toFixed(0));
-      if (state.trackQuality >= 99.5) completeTracking();
+      if (state.trackQuality >= 99.5) phaseMachine.transition(PHASE.VISUAL_CONTACT, { source: 'tracking-threshold', value: state.trackQuality });
     }
-    if (state.tracked) {
+    if (phaseMachine.is(PHASE.VISUAL_CONTACT, PHASE.HAND_SYNC, PHASE.CONTACT_ACKNOWLEDGED)) {
       head.rotation.y += ((state.pointerX * .16) - head.rotation.y) * (1 - Math.exp(-2.2 * delta));
       head.rotation.x += ((-state.pointerY * .08) - head.rotation.x) * (1 - Math.exp(-2.2 * delta));
       entity.position.y = -1.3 + Math.sin(time * .7) * .03;
