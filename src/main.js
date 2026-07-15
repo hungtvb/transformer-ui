@@ -7,6 +7,7 @@ import { createAudioController } from './audioController.js';
 import { createEffectsController } from './effectsController.js';
 import { createExperienceStateMachine, PHASE } from './experienceState.js';
 import { createInputController } from './inputController.js';
+import { createPhaseDirector } from './phaseDirector.js';
 import { advanceTrackingQuality, getTrackingProximity } from './trackingModel.js';
 
 const mobile = innerWidth < 760;
@@ -106,6 +107,7 @@ const ui = {
   radar: document.querySelector('.radar'), radarLock: document.querySelector('.radar-lock'), radarTarget: document.querySelector('.radar-target'),
   trackValue: document.querySelector('.track-value'), trackConsole: document.querySelector('.track-console'),
   contactPad: document.querySelector('.contact-pad'), acknowledge: document.querySelector('.acknowledge'),
+  responseLabel: document.querySelector('.response-mission p'),
   missions: [...document.querySelectorAll('.mission')],
 };
 
@@ -118,61 +120,17 @@ const state = {
 const setMission = (index) => ui.missions.forEach((mission, missionIndex) => mission.classList.toggle('active', index === missionIndex));
 
 let phaseMachine;
-const enterPhase = ({ current }) => {
-  document.body.dataset.phase = current;
-
-  switch (current) {
-    case PHASE.POWER_OFF:
-      ui.station.setAttribute('aria-hidden', 'false');
-      effects.timeline().to('.calibration>*', { opacity: 0, y: -20, stagger: .04, duration: .35 })
-        .to(ui.calibration, { opacity: 0, duration: .55, onComplete: () => ui.calibration.remove() }, .15)
-        .set(ui.station, { visibility: 'visible' }, .2).to(ui.station, { opacity: 1, duration: .65 }, .25);
-      audio.tone(42, 1.2, .08, 'sawtooth');
-      break;
-    case PHASE.POWER_RESTORED:
-      document.body.classList.add('powered');
-      ui.phase.textContent = '02 // TUNE SIGNAL'; ui.status.textContent = 'CARRIER DETECTED';
-      audio.tone(95, .9, .1, 'sawtooth'); effects.flash();
-      effects.delayedCall(.65, () => phaseMachine.transition(PHASE.SIGNAL_TUNING, { source: 'power-transition-complete' }));
-      break;
-    case PHASE.SIGNAL_TUNING:
-      setMission(1);
-      break;
-    case PHASE.SIGNAL_LOCKED:
-      document.body.classList.add('locked');
-      ui.phase.textContent = '03 // TRACK CONTACT'; ui.status.textContent = 'OBJECT MOVING'; ui.entity.textContent = 'UNRESOLVED';
-      audio.tone(46, 1.8, .12, 'sawtooth'); effects.flash();
-      effects.delayedCall(.75, () => phaseMachine.transition(PHASE.RADAR_TRACKING, { source: 'signal-transition-complete' }));
-      break;
-    case PHASE.RADAR_TRACKING:
-      ui.status.textContent = 'ALIGN RETICLE';
-      setMission(2);
-      break;
-    case PHASE.VISUAL_CONTACT:
-      ui.radar.classList.remove('acquiring');
-      document.body.classList.add('tracked', 'contact');
-      ui.phase.textContent = '04 // FIRST CONTACT'; ui.status.textContent = 'VISUAL LOCK'; ui.entity.textContent = 'LIVING';
-      audio.tone(38, 2, .14, 'sawtooth'); effects.flash();
-      effects.timeline({ onComplete: () => phaseMachine.transition(PHASE.HAND_SYNC, { source: 'entity-approach-complete' }) })
-        .to(entity.position, { x: 1.6, z: -13.8, duration: 2.5, ease: 'power3.out' })
-        .to(arm.rotation, { z: -.1, x: -.32, duration: 2.2, ease: 'power3.inOut' }, 0);
-      break;
-    case PHASE.HAND_SYNC:
-      setMission(3);
-      break;
-    case PHASE.CONTACT_ACKNOWLEDGED:
-      ui.acknowledge.disabled = true;
-      audio.tone(82, 1.5, .09, 'sine'); ui.status.textContent = 'IT ACKNOWLEDGED YOU';
-      effects.timeline().to(head.rotation, { y: -.2, x: .06, duration: .55 }).to(head.rotation, { y: 0, x: 0, duration: .8, ease: 'power2.out' });
-      effects.to(eyeLight, { intensity: 32, duration: .35, yoyo: true, repeat: 1 });
-      document.querySelector('.response-mission p').textContent = 'THE RESPONSE WAS DELIBERATE';
-      break;
-    default:
-      break;
-  }
-};
-
-phaseMachine = createExperienceStateMachine({ onTransition: enterPhase });
+const phaseDirector = createPhaseDirector({
+  ui,
+  audio,
+  effects,
+  entity,
+  arm,
+  head,
+  eyeLight,
+  onAdvance: (nextPhase, source) => phaseMachine.transition(nextPhase, { source }),
+});
+phaseMachine = createExperienceStateMachine({ onTransition: phaseDirector.enter });
 
 setTimeout(() => {
   ui.gpu.textContent = renderer.capabilities.isWebGL2 ? 'WEBGL2 READY' : 'COMPATIBLE';
