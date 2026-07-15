@@ -5,6 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { createAudioController } from './audioController.js';
 import { createEffectsController } from './effectsController.js';
+import { damp, getEntityLookTarget, projectEntityToRadar, sampleEntityPatrol } from './entityWorld.js';
 import { createExperienceStateMachine, PHASE } from './experienceState.js';
 import { createInputController } from './inputController.js';
 import { createPhaseDirector } from './phaseDirector.js';
@@ -13,313 +14,60 @@ import { advanceTrackingQuality, getTrackingProximity } from './trackingModel.js
 const mobile = innerWidth < 760;
 const canvas = document.querySelector('#webgl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.1 : 1.6));
-renderer.setSize(innerWidth, innerHeight);
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = .72;
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050605);
-scene.fog = new THREE.FogExp2(0x050605, .055);
-const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, .1, 120);
-camera.position.set(0, 1.2, 11);
-
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), mobile ? .35 : .55, .7, .2);
-composer.addPass(bloom);
-
-const audio = createAudioController();
-const effects = createEffectsController({ bloom, mobile });
-const input = createInputController();
+renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.1 : 1.6)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .72;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x050605); scene.fog = new THREE.FogExp2(0x050605, .055);
+const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, .1, 120); camera.position.set(0, 1.2, 11);
+const composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), mobile ? .35 : .55, .7, .2); composer.addPass(bloom);
+const audio = createAudioController(); const effects = createEffectsController({ bloom, mobile }); const input = createInputController();
 
 const mat = {
   wall: new THREE.MeshStandardMaterial({ color: 0x101410, metalness: .78, roughness: .62 }),
   metal: new THREE.MeshStandardMaterial({ color: 0x303a33, metalness: .92, roughness: .32 }),
   dark: new THREE.MeshStandardMaterial({ color: 0x040604, metalness: .88, roughness: .5 }),
   screen: new THREE.MeshBasicMaterial({ color: 0x0c1b12, toneMapped: false }),
-  amber: new THREE.MeshBasicMaterial({ color: 0xe7b15c, toneMapped: false }),
-  cyan: new THREE.MeshBasicMaterial({ color: 0x9defff, toneMapped: false }),
+  amber: new THREE.MeshBasicMaterial({ color: 0xe7b15c, toneMapped: false }), cyan: new THREE.MeshBasicMaterial({ color: 0x9defff, toneMapped: false }),
 };
-const box = (parent, size, position, material, rotation = [0, 0, 0]) => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
-  mesh.position.set(...position); mesh.rotation.set(...rotation); parent.add(mesh); return mesh;
-};
-
+const box = (parent, size, position, material, rotation = [0, 0, 0]) => { const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material); mesh.position.set(...position); mesh.rotation.set(...rotation); parent.add(mesh); return mesh; };
 const room = new THREE.Group(); scene.add(room);
-box(room, [18, .45, 6], [0, 5, -1], mat.wall);
-box(room, [18, .45, 6], [0, -5, -1], mat.wall);
-box(room, [.55, 10, 5], [-8.5, 0, -1], mat.wall);
-box(room, [.55, 10, 5], [8.5, 0, -1], mat.wall);
-for (const x of [-6.4, -3.2, 3.2, 6.4]) box(room, [.28, 10, .5], [x, 0, -2.4], mat.metal);
-box(room, [12, 1.2, 2.4], [0, -3.9, 1.2], mat.dark, [-.15, 0, 0]);
-for (let i = 0; i < 5; i++) box(room, [1.8, .75, .08], [-4.2 + i * 2.1, -3.45, 2.38], mat.screen, [-.15, 0, 0]);
+box(room, [18,.45,6], [0,5,-1], mat.wall); box(room, [18,.45,6], [0,-5,-1], mat.wall); box(room,[.55,10,5],[-8.5,0,-1],mat.wall); box(room,[.55,10,5],[8.5,0,-1],mat.wall);
+for (const x of [-6.4,-3.2,3.2,6.4]) box(room,[.28,10,.5],[x,0,-2.4],mat.metal);
+box(room,[12,1.2,2.4],[0,-3.9,1.2],mat.dark,[-.15,0,0]); for(let i=0;i<5;i++) box(room,[1.8,.75,.08],[-4.2+i*2.1,-3.45,2.38],mat.screen,[-.15,0,0]);
+const warningLights=[]; for(const x of [-6.8,-4.5,4.5,6.8]){const light=new THREE.PointLight(0xe7b15c,0,7,2); light.position.set(x,3.6,1); scene.add(light); warningLights.push(light); box(room,[.26,.12,.08],[x,3.8,2.35],mat.amber);}
+const roomLight=new THREE.HemisphereLight(0x8ea492,0x020302,.12); scene.add(roomLight); const deskLight=new THREE.PointLight(0xb4d0bb,0,12,2); deskLight.position.set(0,-2.5,3); scene.add(deskLight);
 
-const warningLights = [];
-for (const x of [-6.8, -4.5, 4.5, 6.8]) {
-  const light = new THREE.PointLight(0xe7b15c, 0, 7, 2);
-  light.position.set(x, 3.6, 1); scene.add(light); warningLights.push(light);
-  box(room, [.26, .12, .08], [x, 3.8, 2.35], mat.amber);
-}
-const roomLight = new THREE.HemisphereLight(0x8ea492, 0x020302, .12); scene.add(roomLight);
-const deskLight = new THREE.PointLight(0xb4d0bb, 0, 12, 2); deskLight.position.set(0, -2.5, 3); scene.add(deskLight);
+const entity=new THREE.Group(); entity.position.set(4,-1.3,-31); entity.scale.setScalar(5.3); scene.add(entity);
+const head=new THREE.Group(); head.position.set(0,2.1,0); entity.add(head); box(head,[1.1,.9,.95],[0,0,0],mat.dark); box(head,[.82,.58,.18],[0,-.12,.52],mat.metal);
+const eyeL=box(head,[.24,.11,.06],[-.18,.12,.54],mat.cyan); const eyeR=box(head,[.24,.11,.06],[.18,.12,.54],mat.cyan); box(head,[.72,.4,.18],[0,-.3,.55],mat.metal); box(entity,[4.4,1.4,1.8],[0,.4,-.1],mat.dark);
+const arm=new THREE.Group(); arm.position.set(-2.2,.7,.2); entity.add(arm); box(arm,[1.2,1.1,1.5],[0,0,0],mat.dark); box(arm,[.8,2.1,.9],[0,-1.45,.35],mat.metal,[.08,0,-.12]);
+const hand=new THREE.Group(); hand.position.set(0,-3.15,.72); arm.add(hand); box(hand,[1.05,1.25,.5],[0,0,0],mat.metal,[.08,0,-.08]); for(let i=0;i<4;i++) box(hand,[.17,.95,.2],[-.33+i*.22,-.96,.04],mat.metal,[.05,0,-.08]); arm.rotation.z=-.65;
+const eyeLight=new THREE.PointLight(0x9defff,0,24,2); eyeLight.position.set(4,8,-20); scene.add(eyeLight); const handLight=new THREE.PointLight(0x9defff,0,10,2); handLight.position.set(-2,-1,2); scene.add(handLight);
+const dustGeo=new THREE.BufferGeometry(); const count=mobile?500:1200; const positions=new Float32Array(count*3); for(let i=0;i<count;i++){positions[i*3]=THREE.MathUtils.randFloatSpread(22); positions[i*3+1]=THREE.MathUtils.randFloatSpread(13); positions[i*3+2]=THREE.MathUtils.randFloat(-10,4);} dustGeo.setAttribute('position',new THREE.BufferAttribute(positions,3)); const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0x83978b,size:.035,transparent:true,opacity:.22,depthWrite:false})); scene.add(dust);
 
-const entity = new THREE.Group();
-entity.position.set(4, -1.3, -31); entity.scale.setScalar(5.3); scene.add(entity);
-const head = new THREE.Group(); head.position.set(0, 2.1, 0); entity.add(head);
-box(head, [1.1, .9, .95], [0, 0, 0], mat.dark);
-box(head, [.82, .58, .18], [0, -.12, .52], mat.metal);
-const eyeL = box(head, [.24, .11, .06], [-.18, .12, .54], mat.cyan);
-const eyeR = box(head, [.24, .11, .06], [.18, .12, .54], mat.cyan);
-box(head, [.72, .4, .18], [0, -.3, .55], mat.metal);
-box(entity, [4.4, 1.4, 1.8], [0, .4, -.1], mat.dark);
+const ui={calibration:document.querySelector('.calibration'),station:document.querySelector('.station'),begin:document.querySelector('.begin'),gpu:document.querySelector('.gpu-check'),input:document.querySelector('.input-check'),audio:document.querySelector('.audio-check'),lever:document.querySelector('.lever'),handle:document.querySelector('.lever-handle'),power:document.querySelector('.power-value'),tuner:document.querySelector('.tuner'),frequency:document.querySelector('.frequency'),signal:document.querySelector('.signal-value'),phase:document.querySelector('.phase'),status:document.querySelector('.status'),entity:document.querySelector('.entity-value'),radar:document.querySelector('.radar'),radarLock:document.querySelector('.radar-lock'),radarTarget:document.querySelector('.radar-target'),trackValue:document.querySelector('.track-value'),trackConsole:document.querySelector('.track-console'),contactPad:document.querySelector('.contact-pad'),acknowledge:document.querySelector('.acknowledge'),responseLabel:document.querySelector('.response-mission p'),missions:[...document.querySelectorAll('.mission')]};
+const state={power:0,signalLock:0,leverDragging:false,radarDragging:false,contactHolding:false,pointerX:0,pointerY:0,targetX:72,targetY:34,reticleX:30,reticleY:68,trackQuality:0,trackAcquiring:false,hold:0,contactSynchronized:false,paused:false};
+const setMission=index=>ui.missions.forEach((mission,i)=>mission.classList.toggle('active',i===index));
+let phaseMachine; const phaseDirector=createPhaseDirector({ui,audio,effects,entity,arm,head,eyeLight,onAdvance:(nextPhase,source)=>phaseMachine.transition(nextPhase,{source})}); phaseMachine=createExperienceStateMachine({onTransition:phaseDirector.enter});
+setTimeout(()=>{ui.gpu.textContent=renderer.capabilities.isWebGL2?'WEBGL2 READY':'COMPATIBLE'; ui.input.textContent=('ontouchstart'in window)?'TOUCH READY':'POINTER READY'; ui.audio.textContent='USER GESTURE'; ui.begin.classList.add('ready');},900);
+input.listen(ui.begin,'click',async()=>{if(!phaseMachine.is(PHASE.CALIBRATION))return; await audio.resume(); phaseMachine.transition(PHASE.POWER_OFF,{source:'begin-button'});});
 
-const arm = new THREE.Group(); arm.position.set(-2.2, .7, .2); entity.add(arm);
-box(arm, [1.2, 1.1, 1.5], [0, 0, 0], mat.dark);
-box(arm, [.8, 2.1, .9], [0, -1.45, .35], mat.metal, [.08, 0, -.12]);
-const hand = new THREE.Group(); hand.position.set(0, -3.15, .72); arm.add(hand);
-box(hand, [1.05, 1.25, .5], [0, 0, 0], mat.metal, [.08, 0, -.08]);
-for (let i = 0; i < 4; i++) box(hand, [.17, .95, .2], [-.33 + i * .22, -.96, .04], mat.metal, [.05, 0, -.08]);
-arm.rotation.z = -.65;
+const updatePower=value=>{if(!phaseMachine.is(PHASE.POWER_OFF))return; state.power=THREE.MathUtils.clamp(value,0,100); document.documentElement.style.setProperty('--power',state.power.toFixed(0)); ui.power.textContent=`${Math.round(state.power)}%`; ui.handle.setAttribute('aria-valuenow',Math.round(state.power)); roomLight.intensity=.12+state.power*.012; deskLight.intensity=state.power*.06; warningLights.forEach((light,index)=>light.intensity=state.power>20?(1.2+Math.sin(performance.now()*.006+index)*.4)*state.power*.035:0); renderer.toneMappingExposure=.72+state.power*.006; if(state.power>=96)phaseMachine.transition(PHASE.POWER_RESTORED,{source:'power-threshold',value:state.power});};
+const stopLeverDrag=event=>{state.leverDragging=false; input.releasePointer(ui.handle,event);}; input.listen(ui.handle,'pointerdown',event=>{if(!phaseMachine.is(PHASE.POWER_OFF))return; state.leverDragging=true; input.capturePointer(ui.handle,event); void audio.resume(); audio.tone(55,.25,.04,'square');}); input.listen(ui.handle,'pointermove',event=>{if(!state.leverDragging)return; const rect=ui.lever.getBoundingClientRect(); updatePower(((event.clientY-rect.top)/rect.height)*100);}); input.listen(ui.handle,'pointerup',stopLeverDrag); input.listen(ui.handle,'pointercancel',stopLeverDrag); input.listen(ui.handle,'lostpointercapture',()=>{state.leverDragging=false;});
+input.listen(ui.handle,'keydown',event=>{if(!phaseMachine.is(PHASE.POWER_OFF))return; const step=event.shiftKey?10:5; const keys={ArrowDown:step,ArrowRight:step,ArrowUp:-step,ArrowLeft:-step,Home:-state.power,End:100-state.power}; if(!(event.key in keys))return; event.preventDefault(); updatePower(state.power+keys[event.key]);});
+input.listen(ui.tuner,'input',event=>{if(!phaseMachine.is(PHASE.SIGNAL_TUNING))return; const value=+event.target.value,target=73,distance=Math.abs(value-target); state.signalLock=Math.max(0,100-distance*3.2); document.documentElement.style.setProperty('--lock',state.signalLock.toFixed(0)); ui.frequency.textContent=(118.7+value*1.37).toFixed(1); ui.signal.textContent=`${Math.round(state.signalLock)}%`; audio.tone(180+value*6,.06,.012,state.signalLock>80?'sine':'square'); eyeLight.intensity=state.signalLock*.05; effects.setSignalBloom(state.signalLock); if(state.signalLock>97)phaseMachine.transition(PHASE.SIGNAL_LOCKED,{source:'signal-threshold',value:state.signalLock});});
 
-const eyeLight = new THREE.PointLight(0x9defff, 0, 24, 2); eyeLight.position.set(4, 8, -20); scene.add(eyeLight);
-const handLight = new THREE.PointLight(0x9defff, 0, 10, 2); handLight.position.set(-2, -1, 2); scene.add(handLight);
+const setRadarReticle=(x,y)=>{state.reticleX=THREE.MathUtils.clamp(x,4,96); state.reticleY=THREE.MathUtils.clamp(y,4,96); ui.radarLock.style.left=`${state.reticleX}%`; ui.radarLock.style.top=`${state.reticleY}%`;}; const updateRadarReticle=event=>{if(!state.radarDragging||!phaseMachine.is(PHASE.RADAR_TRACKING))return; const rect=ui.radar.getBoundingClientRect(); setRadarReticle(((event.clientX-rect.left)/rect.width)*100,((event.clientY-rect.top)/rect.height)*100);}; const stopRadarDrag=event=>{state.radarDragging=false; input.releasePointer(ui.radar,event);};
+input.listen(ui.radar,'pointerdown',event=>{if(!phaseMachine.is(PHASE.RADAR_TRACKING))return; state.radarDragging=true; input.capturePointer(ui.radar,event); updateRadarReticle(event); void audio.resume();}); input.listen(ui.radar,'pointermove',updateRadarReticle); input.listen(ui.radar,'pointerup',stopRadarDrag); input.listen(ui.radar,'pointercancel',stopRadarDrag); input.listen(ui.radar,'lostpointercapture',()=>{state.radarDragging=false;}); input.listen(ui.radarLock,'keydown',event=>{if(!phaseMachine.is(PHASE.RADAR_TRACKING))return; const step=event.shiftKey?5:2; const keys={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}; if(!(event.key in keys))return; event.preventDefault(); const[x,y]=keys[event.key]; setRadarReticle(state.reticleX+x,state.reticleY+y); void audio.resume();});
 
-const dustGeo = new THREE.BufferGeometry();
-const count = mobile ? 500 : 1200;
-const positions = new Float32Array(count * 3);
-for (let i = 0; i < count; i++) {
-  positions[i * 3] = THREE.MathUtils.randFloatSpread(22);
-  positions[i * 3 + 1] = THREE.MathUtils.randFloatSpread(13);
-  positions[i * 3 + 2] = THREE.MathUtils.randFloat(-10, 4);
-}
-dustGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0x83978b, size: .035, transparent: true, opacity: .22, depthWrite: false }));
-scene.add(dust);
+let contactTimer; const cancelContactHold=event=>{clearInterval(contactTimer); state.contactHolding=false; input.releasePointer(ui.contactPad,event); if(!state.contactSynchronized){state.hold=0; document.documentElement.style.setProperty('--contact','0'); ui.contactPad.querySelector('span').textContent='PLACE HAND HERE'; handLight.intensity=0; effects.resetBloom();}};
+input.listen(ui.contactPad,'pointerdown',event=>{if(!phaseMachine.is(PHASE.HAND_SYNC)||state.contactSynchronized||state.contactHolding)return; clearInterval(contactTimer); state.contactHolding=true; state.hold=0; input.capturePointer(ui.contactPad,event); void audio.resume(); contactTimer=setInterval(()=>{state.hold=Math.min(100,state.hold+4); document.documentElement.style.setProperty('--contact',state.hold.toFixed(0)); ui.contactPad.querySelector('span').textContent=`SYNCHRONIZING ${state.hold}%`; handLight.intensity=state.hold*.18; effects.setContactBloom(state.hold); if(state.hold>=100){clearInterval(contactTimer); state.contactHolding=false; state.contactSynchronized=true; document.body.classList.add('synchronized'); ui.phase.textContent='05 // CONTACT'; ui.status.textContent='SYNCHRONIZED'; ui.contactPad.querySelector('span').textContent='CONTACT ESTABLISHED'; audio.tone(76,1.8,.11,'sine'); effects.flash(); effects.timeline({onComplete:()=>setMission(4)}).to(arm.position,{x:.5,y:.15,z:1.4,duration:1.2,ease:'power3.out'}).to(head.rotation,{y:-.12,duration:.55,yoyo:true,repeat:1},0);}},45);}); input.listen(ui.contactPad,'pointerup',cancelContactHold); input.listen(ui.contactPad,'pointercancel',cancelContactHold); input.listen(ui.contactPad,'lostpointercapture',()=>cancelContactHold());
+input.listen(ui.acknowledge,'click',()=>{if(!phaseMachine.is(PHASE.HAND_SYNC)||!state.contactSynchronized)return; phaseMachine.transition(PHASE.CONTACT_ACKNOWLEDGED,{source:'acknowledge-button'});}); input.bindPointerPosition(({x,y})=>{state.pointerX=x;state.pointerY=y;});
+const clock=new THREE.Clock(); input.bindVisibility(async hidden=>{state.paused=hidden; if(hidden)await audio.suspend(); else{await audio.resume();clock.getDelta();}});
 
-const ui = {
-  calibration: document.querySelector('.calibration'), station: document.querySelector('.station'), begin: document.querySelector('.begin'),
-  gpu: document.querySelector('.gpu-check'), input: document.querySelector('.input-check'), audio: document.querySelector('.audio-check'),
-  lever: document.querySelector('.lever'), handle: document.querySelector('.lever-handle'), power: document.querySelector('.power-value'),
-  tuner: document.querySelector('.tuner'), frequency: document.querySelector('.frequency'), signal: document.querySelector('.signal-value'),
-  phase: document.querySelector('.phase'), status: document.querySelector('.status'), entity: document.querySelector('.entity-value'),
-  radar: document.querySelector('.radar'), radarLock: document.querySelector('.radar-lock'), radarTarget: document.querySelector('.radar-target'),
-  trackValue: document.querySelector('.track-value'), trackConsole: document.querySelector('.track-console'),
-  contactPad: document.querySelector('.contact-pad'), acknowledge: document.querySelector('.acknowledge'),
-  responseLabel: document.querySelector('.response-mission p'),
-  missions: [...document.querySelectorAll('.mission')],
-};
-
-const state = {
-  power: 0, signalLock: 0, leverDragging: false, radarDragging: false, contactHolding: false,
-  pointerX: 0, pointerY: 0, targetX: 72, targetY: 34, reticleX: 30, reticleY: 68,
-  trackQuality: 0, trackAcquiring: false, hold: 0, contactSynchronized: false, paused: false,
-};
-
-const setMission = (index) => ui.missions.forEach((mission, missionIndex) => mission.classList.toggle('active', index === missionIndex));
-
-let phaseMachine;
-const phaseDirector = createPhaseDirector({
-  ui,
-  audio,
-  effects,
-  entity,
-  arm,
-  head,
-  eyeLight,
-  onAdvance: (nextPhase, source) => phaseMachine.transition(nextPhase, { source }),
-});
-phaseMachine = createExperienceStateMachine({ onTransition: phaseDirector.enter });
-
-setTimeout(() => {
-  ui.gpu.textContent = renderer.capabilities.isWebGL2 ? 'WEBGL2 READY' : 'COMPATIBLE';
-  ui.input.textContent = ('ontouchstart' in window) ? 'TOUCH READY' : 'POINTER READY';
-  ui.audio.textContent = 'USER GESTURE'; ui.begin.classList.add('ready');
-}, 900);
-
-input.listen(ui.begin, 'click', async () => {
-  if (!phaseMachine.is(PHASE.CALIBRATION)) return;
-  await audio.resume();
-  phaseMachine.transition(PHASE.POWER_OFF, { source: 'begin-button' });
-});
-
-const updatePower = (value) => {
-  if (!phaseMachine.is(PHASE.POWER_OFF)) return;
-  state.power = THREE.MathUtils.clamp(value, 0, 100);
-  document.documentElement.style.setProperty('--power', state.power.toFixed(0));
-  ui.power.textContent = `${Math.round(state.power)}%`; ui.handle.setAttribute('aria-valuenow', Math.round(state.power));
-  roomLight.intensity = .12 + state.power * .012; deskLight.intensity = state.power * .06;
-  warningLights.forEach((light, index) => light.intensity = state.power > 20 ? (1.2 + Math.sin(performance.now() * .006 + index) * .4) * state.power * .035 : 0);
-  renderer.toneMappingExposure = .72 + state.power * .006;
-  if (state.power >= 96) phaseMachine.transition(PHASE.POWER_RESTORED, { source: 'power-threshold', value: state.power });
-};
-const stopLeverDrag = (event) => {
-  state.leverDragging = false;
-  input.releasePointer(ui.handle, event);
-};
-input.listen(ui.handle, 'pointerdown', async (event) => {
-  if (!phaseMachine.is(PHASE.POWER_OFF)) return;
-  state.leverDragging = true; input.capturePointer(ui.handle, event); await audio.resume(); audio.tone(55, .25, .04, 'square');
-});
-input.listen(ui.handle, 'pointermove', (event) => {
-  if (!state.leverDragging) return;
-  const rect = ui.lever.getBoundingClientRect(); updatePower(((event.clientY - rect.top) / rect.height) * 100);
-});
-input.listen(ui.handle, 'pointerup', stopLeverDrag);
-input.listen(ui.handle, 'pointercancel', stopLeverDrag);
-input.listen(ui.handle, 'lostpointercapture', () => { state.leverDragging = false; });
-input.listen(ui.handle, 'keydown', (event) => {
-  if (!phaseMachine.is(PHASE.POWER_OFF)) return;
-  const step = event.shiftKey ? 10 : 5;
-  const keys = { ArrowDown: step, ArrowRight: step, ArrowUp: -step, ArrowLeft: -step, Home: -state.power, End: 100 - state.power };
-  if (!(event.key in keys)) return;
-  event.preventDefault(); updatePower(state.power + keys[event.key]);
-});
-
-input.listen(ui.tuner, 'input', (event) => {
-  if (!phaseMachine.is(PHASE.SIGNAL_TUNING)) return;
-  const value = +event.target.value; const target = 73; const distance = Math.abs(value - target);
-  state.signalLock = Math.max(0, 100 - distance * 3.2);
-  document.documentElement.style.setProperty('--lock', state.signalLock.toFixed(0));
-  ui.frequency.textContent = `${(118.7 + value * 1.37).toFixed(1)}`; ui.signal.textContent = `${Math.round(state.signalLock)}%`;
-  audio.tone(180 + value * 6, .06, .012, state.signalLock > 80 ? 'sine' : 'square');
-  entity.position.z = -31 + state.signalLock * .05; eyeLight.intensity = state.signalLock * .05;
-  effects.setSignalBloom(state.signalLock);
-  if (state.signalLock > 97) phaseMachine.transition(PHASE.SIGNAL_LOCKED, { source: 'signal-threshold', value: state.signalLock });
-});
-
-const setRadarReticle = (x, y) => {
-  state.reticleX = THREE.MathUtils.clamp(x, 4, 96);
-  state.reticleY = THREE.MathUtils.clamp(y, 4, 96);
-  ui.radarLock.style.left = `${state.reticleX}%`;
-  ui.radarLock.style.top = `${state.reticleY}%`;
-};
-const updateRadarReticle = (event) => {
-  if (!state.radarDragging || !phaseMachine.is(PHASE.RADAR_TRACKING)) return;
-  const rect = ui.radar.getBoundingClientRect();
-  setRadarReticle(
-    ((event.clientX - rect.left) / rect.width) * 100,
-    ((event.clientY - rect.top) / rect.height) * 100,
-  );
-};
-const stopRadarDrag = (event) => {
-  state.radarDragging = false;
-  input.releasePointer(ui.radar, event);
-};
-input.listen(ui.radar, 'pointerdown', (event) => {
-  if (!phaseMachine.is(PHASE.RADAR_TRACKING)) return;
-  state.radarDragging = true;
-  input.capturePointer(ui.radar, event);
-  updateRadarReticle(event);
-  void audio.resume();
-});
-input.listen(ui.radar, 'pointermove', updateRadarReticle);
-input.listen(ui.radar, 'pointerup', stopRadarDrag);
-input.listen(ui.radar, 'pointercancel', stopRadarDrag);
-input.listen(ui.radar, 'lostpointercapture', () => { state.radarDragging = false; });
-input.listen(ui.radarLock, 'keydown', (event) => {
-  if (!phaseMachine.is(PHASE.RADAR_TRACKING)) return;
-  const step = event.shiftKey ? 5 : 2;
-  const keys = {
-    ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step],
-  };
-  if (!(event.key in keys)) return;
-  event.preventDefault();
-  const [x, y] = keys[event.key];
-  setRadarReticle(state.reticleX + x, state.reticleY + y);
-  void audio.resume();
-});
-
-let contactTimer;
-const cancelContactHold = (event) => {
-  clearInterval(contactTimer); state.contactHolding = false;
-  input.releasePointer(ui.contactPad, event);
-  if (!state.contactSynchronized) {
-    state.hold = 0; document.documentElement.style.setProperty('--contact', '0');
-    ui.contactPad.querySelector('span').textContent = 'PLACE HAND HERE';
-    handLight.intensity = 0; effects.resetBloom();
-  }
-};
-input.listen(ui.contactPad, 'pointerdown', async (event) => {
-  if (!phaseMachine.is(PHASE.HAND_SYNC) || state.contactSynchronized || state.contactHolding) return;
-  await audio.resume(); clearInterval(contactTimer); state.contactHolding = true; state.hold = 0;
-  input.capturePointer(ui.contactPad, event);
-  contactTimer = setInterval(() => {
-    state.hold = Math.min(100, state.hold + 4);
-    document.documentElement.style.setProperty('--contact', state.hold.toFixed(0));
-    ui.contactPad.querySelector('span').textContent = `SYNCHRONIZING ${state.hold}%`;
-    handLight.intensity = state.hold * .18; effects.setContactBloom(state.hold);
-    if (state.hold >= 100) {
-      clearInterval(contactTimer); state.contactHolding = false; state.contactSynchronized = true; document.body.classList.add('synchronized');
-      ui.phase.textContent = '05 // CONTACT'; ui.status.textContent = 'SYNCHRONIZED'; ui.contactPad.querySelector('span').textContent = 'CONTACT ESTABLISHED';
-      audio.tone(76, 1.8, .11, 'sine'); effects.flash();
-      effects.timeline({ onComplete: () => setMission(4) })
-        .to(arm.position, { x: .5, y: .15, z: 1.4, duration: 1.2, ease: 'power3.out' })
-        .to(head.rotation, { y: -.12, duration: .55, yoyo: true, repeat: 1 }, 0);
-    }
-  }, 45);
-});
-input.listen(ui.contactPad, 'pointerup', cancelContactHold);
-input.listen(ui.contactPad, 'pointercancel', cancelContactHold);
-input.listen(ui.contactPad, 'lostpointercapture', () => cancelContactHold());
-
-input.listen(ui.acknowledge, 'click', () => {
-  if (!phaseMachine.is(PHASE.HAND_SYNC) || !state.contactSynchronized) return;
-  phaseMachine.transition(PHASE.CONTACT_ACKNOWLEDGED, { source: 'acknowledge-button' });
-});
-
-input.bindPointerPosition(({ x, y }) => {
-  state.pointerX = x;
-  state.pointerY = y;
-});
-
-const clock = new THREE.Clock();
-input.bindVisibility(async (hidden) => {
-  state.paused = hidden;
-  if (hidden) await audio.suspend(); else { await audio.resume(); clock.getDelta(); }
-});
-
-function render() {
-  const delta = Math.min(clock.getDelta(), .05);
-  const time = clock.elapsedTime;
-  if (!state.paused) {
-    dust.rotation.y = time * .002; dust.position.y = Math.sin(time * .2) * .08;
-    if (phaseMachine.is(PHASE.RADAR_TRACKING)) {
-      state.targetX = 50 + Math.sin(time * .42) * 26;
-      state.targetY = 50 + Math.cos(time * .55) * 23;
-      ui.radarTarget.style.left = `${state.targetX}%`; ui.radarTarget.style.top = `${state.targetY}%`;
-
-      const distance = Math.hypot(state.targetX - state.reticleX, state.targetY - state.reticleY);
-      const proximity = getTrackingProximity(distance);
-      const acquiring = proximity > 0;
-
-      if (acquiring !== state.trackAcquiring) {
-        state.trackAcquiring = acquiring;
-        ui.radar.classList.toggle('acquiring', acquiring);
-        ui.status.textContent = acquiring ? 'HOLD STEADY' : 'ALIGN RETICLE';
-        if (acquiring) audio.tone(320, .12, .025, 'sine');
-      }
-
-      state.trackQuality = advanceTrackingQuality(state.trackQuality, distance, delta);
-      ui.trackValue.textContent = `${Math.round(state.trackQuality)}%`; ui.trackConsole.textContent = `${Math.round(state.trackQuality)}%`;
-      document.documentElement.style.setProperty('--track', state.trackQuality.toFixed(0));
-      if (state.trackQuality >= 100) phaseMachine.transition(PHASE.VISUAL_CONTACT, { source: 'tracking-threshold', value: state.trackQuality });
-    }
-    if (phaseMachine.is(PHASE.VISUAL_CONTACT, PHASE.HAND_SYNC, PHASE.CONTACT_ACKNOWLEDGED)) {
-      head.rotation.y += ((state.pointerX * .16) - head.rotation.y) * (1 - Math.exp(-2.2 * delta));
-      head.rotation.x += ((-state.pointerY * .08) - head.rotation.x) * (1 - Math.exp(-2.2 * delta));
-      entity.position.y = -1.3 + Math.sin(time * .7) * .03;
-      eyeL.scale.x = eyeR.scale.x = 1 + Math.sin(time * 3.5) * .04;
-    }
-    composer.render();
-  }
-  requestAnimationFrame(render);
-}
-render();
-
-input.listen(window, 'resize', () => {
-  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 760 ? 1.1 : 1.6));
-});
+function render(){const delta=Math.min(clock.getDelta(),.05),time=clock.elapsedTime; if(!state.paused){dust.rotation.y=time*.002; dust.position.y=Math.sin(time*.2)*.08;
+  if(phaseMachine.is(PHASE.SIGNAL_TUNING,PHASE.SIGNAL_LOCKED,PHASE.RADAR_TRACKING)){const patrol=sampleEntityPatrol(time); entity.position.x=damp(entity.position.x,patrol.x,1.8,delta); entity.position.y=damp(entity.position.y,patrol.y,2.2,delta); entity.position.z=damp(entity.position.z,patrol.z,1.8,delta); entity.rotation.y=damp(entity.rotation.y,patrol.heading*.08,1.4,delta); const radar=projectEntityToRadar(entity.position); state.targetX=radar.x; state.targetY=radar.y;}
+  if(phaseMachine.is(PHASE.RADAR_TRACKING)){ui.radarTarget.style.left=`${state.targetX}%`; ui.radarTarget.style.top=`${state.targetY}%`; const distance=Math.hypot(state.targetX-state.reticleX,state.targetY-state.reticleY),proximity=getTrackingProximity(distance),acquiring=proximity>0; if(acquiring!==state.trackAcquiring){state.trackAcquiring=acquiring; ui.radar.classList.toggle('acquiring',acquiring); ui.status.textContent=acquiring?'HOLD STEADY':'ALIGN RETICLE'; if(acquiring)audio.tone(320,.12,.025,'sine');} state.trackQuality=advanceTrackingQuality(state.trackQuality,distance,delta); ui.trackValue.textContent=`${Math.round(state.trackQuality)}%`; ui.trackConsole.textContent=`${Math.round(state.trackQuality)}%`; document.documentElement.style.setProperty('--track',state.trackQuality.toFixed(0)); if(state.trackQuality>=100)phaseMachine.transition(PHASE.VISUAL_CONTACT,{source:'tracking-threshold',value:state.trackQuality});}
+  if(phaseMachine.is(PHASE.VISUAL_CONTACT,PHASE.HAND_SYNC,PHASE.CONTACT_ACKNOWLEDGED)){const look=getEntityLookTarget(state); head.rotation.y=damp(head.rotation.y,look.yaw,2.2,delta); head.rotation.x=damp(head.rotation.x,look.pitch,2.2,delta); entity.position.y=-1.3+Math.sin(time*.7)*.03; eyeL.scale.x=eyeR.scale.x=1+Math.sin(time*3.5)*.04;}
+  composer.render();} requestAnimationFrame(render);} render();
+input.listen(window,'resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<760?1.1:1.6));});
