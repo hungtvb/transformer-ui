@@ -10,6 +10,9 @@ const PRESENTATION = Object.freeze({
   [PHASE.VISUAL_CONTACT]: Object.freeze({ mission: 3, phase: '04 // FIRST CONTACT', status: 'APPROACHING GLASS', entity: 'LIVING' }),
   [PHASE.HAND_SYNC]: Object.freeze({ mission: 3, phase: '04 // FIRST CONTACT', status: 'PLACE HAND ON INTERFACE', entity: 'LIVING' }),
   [PHASE.CONTACT_ACKNOWLEDGED]: Object.freeze({ mission: 4, phase: '05 // CONTACT', status: 'IT ACKNOWLEDGED YOU', entity: 'LIVING' }),
+  [PHASE.ENTITY_RETREAT]: Object.freeze({ mission: 4, phase: '06 // WITHDRAWAL', status: 'ENTITY WITHDRAWING', entity: 'MOVING' }),
+  [PHASE.SIGNAL_LOST]: Object.freeze({ mission: 4, phase: '07 // SIGNAL LOST', status: 'NO RETURN', entity: 'LOST' }),
+  [PHASE.TRANSMISSION_ARCHIVED]: Object.freeze({ mission: 4, phase: '08 // ARCHIVED', status: 'TRANSMISSION SEALED', entity: 'UNKNOWN' }),
 });
 
 export function getPhasePresentation(phase) {
