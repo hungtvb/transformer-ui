@@ -9,7 +9,7 @@
 </head>
 <body>
   <canvas id="webgl" aria-label="Interactive first-contact control room"></canvas>
-  <div class="grain"></div><div class="vignette"></div><div class="glass"></div><div class="flash"></div>
+  <div class="grain"></div><div class="vignette"></div><div class="glass"></div><div class="flash"></div><div class="handprint"></div>
 
   <section class="calibration">
     <p>FIELD TERMINAL 07 // OFFLINE</p>
@@ -47,15 +47,36 @@
       <small>ALIGN THE SIGNAL UNTIL THE CARRIER LOCKS</small>
     </section>
 
+    <section class="mission tracking-mission">
+      <p>LONG-RANGE OBJECT DETECTED</p>
+      <h2>TRACK THE<br>MOVEMENT<br>OUTSIDE.</h2>
+      <div class="radar" aria-label="Target tracking radar">
+        <div class="radar-grid"></div>
+        <div class="radar-sweep"></div>
+        <div class="radar-target"></div>
+        <button class="radar-lock" type="button" aria-label="Tracking reticle"><span></span></button>
+        <div class="radar-readout"><span>TRACK QUALITY</span><b class="track-value">0%</b></div>
+      </div>
+      <small>DRAG THE RETICLE OVER THE MOVING CONTACT AND HOLD IT THERE</small>
+    </section>
+
     <section class="mission contact-mission">
       <p>VISUAL CONTACT ESTABLISHED</p>
-      <h2>IT KNOWS<br>YOU ARE<br>THERE.</h2>
+      <h2>MEET IT<br>AT THE<br>GLASS.</h2>
+      <button class="contact-pad" type="button"><span>PLACE HAND HERE</span><i></i></button>
+      <small>PRESS AND HOLD UNTIL CONTACT SYNCHRONIZES</small>
+    </section>
+
+    <section class="mission response-mission">
+      <p>CONTACT SYNCHRONIZED</p>
+      <h2>IT KNOWS<br>YOU CAME<br>BACK.</h2>
       <button class="acknowledge" type="button">ACKNOWLEDGE CONTACT</button>
     </section>
 
     <aside class="console">
       <div><span>POWER</span><b class="power-value">0%</b></div>
       <div><span>SIGNAL</span><b class="signal-value">0%</b></div>
+      <div><span>TRACK</span><b class="track-console">0%</b></div>
       <div><span>ENTITY</span><b class="entity-value">UNKNOWN</b></div>
     </aside>
     <p class="hint">PHYSICAL INPUT REQUIRED · HEADPHONES RECOMMENDED</p>
