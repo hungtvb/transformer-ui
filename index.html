@@ -3,99 +3,63 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#020207" />
-  <meta name="description" content="THE BREACH — an experimental scroll-driven cinematic web experience." />
-  <title>THE BREACH // Interactive Experience</title>
+  <meta name="theme-color" content="#050605" />
+  <meta name="description" content="PROJECT TITAN — an interactive first-contact control room experience." />
+  <title>PROJECT TITAN // First Contact</title>
 </head>
 <body>
-  <canvas id="webgl" aria-label="Interactive cinematic breach experience"></canvas>
+  <canvas id="webgl" aria-label="Interactive first-contact control room"></canvas>
+  <div class="grain"></div><div class="vignette"></div><div class="glass"></div><div class="flash"></div>
 
-  <div class="screen-surface" aria-hidden="true">
-    <div class="screen-glow"></div>
-    <div class="glass-cracks"></div>
-    <div class="impact-dent"></div>
-  </div>
-  <div class="grain"></div>
-  <div class="vignette"></div>
-  <div class="flash"></div>
-  <div class="cursor-decoy" aria-hidden="true"></div>
+  <section class="calibration">
+    <p>FIELD TERMINAL 07 // OFFLINE</p>
+    <h1>PROJECT<br>TITAN</h1>
+    <div class="calibration-list">
+      <span>RENDER PATH <b class="gpu-check">SCANNING</b></span>
+      <span>INPUT MATRIX <b class="input-check">SCANNING</b></span>
+      <span>AUDIO BUS <b class="audio-check">LOCKED</b></span>
+    </div>
+    <button class="begin" type="button">ENTER STATION</button>
+  </section>
 
-  <header class="hud prop" data-prop>
-    <div class="brand"><span></span><b>THE BREACH</b></div>
-    <div class="signal">SIGNAL <strong>UNKNOWN</strong></div>
-  </header>
+  <main class="station" aria-hidden="true">
+    <header><b>ORBITAL RELAY 07</b><span class="phase">01 // RESTORE POWER</span><i class="status">NO POWER</i></header>
 
-  <aside class="progress-rail prop" data-prop aria-label="Story progress">
-    <span class="progress-fill"></span>
-    <ol>
-      <li data-label="Silence">01</li>
-      <li data-label="Pressure">02</li>
-      <li data-label="Crack">03</li>
-      <li data-label="Eye Contact">04</li>
-      <li data-label="Breach">05</li>
-      <li data-label="Outside">06</li>
-      <li data-label="Choice">07</li>
-    </ol>
-  </aside>
-
-  <main class="story">
-    <section class="chapter chapter-silence" data-chapter="0">
-      <div class="copy prop" data-prop>
-        <p>NO SIGNAL</p>
-        <h1>THERE IS<br />NOTHING<br />HERE.</h1>
+    <section class="mission power-mission active">
+      <p>MANUAL OVERRIDE REQUIRED</p>
+      <h2>WAKE THE<br>DEAD STATION.</h2>
+      <div class="lever" role="slider" aria-label="Main power lever" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="lever-track"><i></i></div>
+        <button class="lever-handle" type="button"><span>MAIN POWER</span></button>
       </div>
+      <small>DRAG THE LEVER DOWN</small>
     </section>
 
-    <section class="chapter chapter-pressure" data-chapter="1">
-      <div class="copy prop" data-prop>
-        <p>STRUCTURAL ANOMALY</p>
-        <h2>SOMETHING<br />IS BEHIND<br />THE GLASS.</h2>
+    <section class="mission signal-mission">
+      <p>UNKNOWN CARRIER DETECTED</p>
+      <h2>FIND THE<br>VOICE IN<br>THE STATIC.</h2>
+      <div class="tuner-panel">
+        <div class="waveform"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <label>FREQUENCY <output class="frequency">000.0</output></label>
+        <input class="tuner" type="range" min="0" max="100" value="8" aria-label="Signal frequency tuner" />
+        <div class="lock-meter"><span></span></div>
       </div>
+      <small>ALIGN THE SIGNAL UNTIL THE CARRIER LOCKS</small>
     </section>
 
-    <section class="chapter chapter-crack" data-chapter="2">
-      <div class="copy prop" data-prop>
-        <p>BARRIER FAILURE</p>
-        <h2>IT FOUND<br />A WAY<br />THROUGH.</h2>
-      </div>
+    <section class="mission contact-mission">
+      <p>VISUAL CONTACT ESTABLISHED</p>
+      <h2>IT KNOWS<br>YOU ARE<br>THERE.</h2>
+      <button class="acknowledge" type="button">ACKNOWLEDGE CONTACT</button>
     </section>
 
-    <section class="chapter chapter-eye" data-chapter="3">
-      <div class="copy prop" data-prop>
-        <p>VISUAL CONTACT</p>
-        <h2>DO NOT<br />LOOK<br />AWAY.</h2>
-      </div>
-    </section>
-
-    <section class="chapter chapter-breach" data-chapter="4">
-      <div class="copy prop" data-prop>
-        <p>CONTAINMENT LOST</p>
-        <h2>THE SCREEN<br />WAS NEVER<br />A WALL.</h2>
-      </div>
-    </section>
-
-    <section class="chapter chapter-outside" data-chapter="5">
-      <div class="copy prop" data-prop>
-        <p>PROXIMITY CRITICAL</p>
-        <h2>TOO LARGE<br />TO FIT<br />INSIDE.</h2>
-      </div>
-    </section>
-
-    <section class="chapter chapter-choice" data-chapter="6">
-      <div class="choice-panel prop" data-prop>
-        <p>IT IS WAITING FOR YOUR ANSWER.</p>
-        <h2>LET IT<br />CROSS?</h2>
-        <div class="choices">
-          <button type="button" data-choice="trust">TRUST</button>
-          <button type="button" data-choice="leave">LEAVE</button>
-        </div>
-      </div>
-    </section>
+    <aside class="console">
+      <div><span>POWER</span><b class="power-value">0%</b></div>
+      <div><span>SIGNAL</span><b class="signal-value">0%</b></div>
+      <div><span>ENTITY</span><b class="entity-value">UNKNOWN</b></div>
+    </aside>
+    <p class="hint">PHYSICAL INPUT REQUIRED · HEADPHONES RECOMMENDED</p>
   </main>
-
-  <div class="chapter-caption prop" data-prop><span>01</span><b>SILENCE</b></div>
-  <p class="scroll-hint prop" data-prop>SCROLL TO BREAK THE BARRIER</p>
-  <p class="legal">Original experimental robot concept.</p>
 
   <script type="module" src="/src/main.js"></script>
 </body>
