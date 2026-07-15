@@ -7,8 +7,8 @@ const PRESENTATION = Object.freeze({
   [PHASE.SIGNAL_TUNING]: Object.freeze({ mission: 1, phase: '02 // TUNE SIGNAL', status: 'CARRIER DETECTED', entity: 'UNKNOWN' }),
   [PHASE.SIGNAL_LOCKED]: Object.freeze({ mission: 1, phase: '03 // TRACK CONTACT', status: 'OBJECT MOVING', entity: 'UNRESOLVED' }),
   [PHASE.RADAR_TRACKING]: Object.freeze({ mission: 2, phase: '03 // TRACK CONTACT', status: 'ALIGN RETICLE', entity: 'UNRESOLVED' }),
-  [PHASE.VISUAL_CONTACT]: Object.freeze({ mission: 2, phase: '04 // FIRST CONTACT', status: 'VISUAL LOCK', entity: 'LIVING' }),
-  [PHASE.HAND_SYNC]: Object.freeze({ mission: 3, phase: '04 // FIRST CONTACT', status: 'VISUAL LOCK', entity: 'LIVING' }),
+  [PHASE.VISUAL_CONTACT]: Object.freeze({ mission: 3, phase: '04 // FIRST CONTACT', status: 'APPROACHING GLASS', entity: 'LIVING' }),
+  [PHASE.HAND_SYNC]: Object.freeze({ mission: 3, phase: '04 // FIRST CONTACT', status: 'PLACE HAND ON INTERFACE', entity: 'LIVING' }),
   [PHASE.CONTACT_ACKNOWLEDGED]: Object.freeze({ mission: 4, phase: '05 // CONTACT', status: 'IT ACKNOWLEDGED YOU', entity: 'LIVING' }),
 });
 
