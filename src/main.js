@@ -38,14 +38,13 @@ const box = (parent, size, position, material, rotation = [0, 0, 0]) => {
   mesh.position.set(...position); mesh.rotation.set(...rotation); parent.add(mesh); return mesh;
 };
 
-// Industrial control room and exterior observation window.
 const room = new THREE.Group(); scene.add(room);
 box(room, [18, .45, 6], [0, 5, -1], mat.wall);
 box(room, [18, .45, 6], [0, -5, -1], mat.wall);
 box(room, [.55, 10, 5], [-8.5, 0, -1], mat.wall);
 box(room, [.55, 10, 5], [8.5, 0, -1], mat.wall);
 for (const x of [-6.4, -3.2, 3.2, 6.4]) box(room, [.28, 10, .5], [x, 0, -2.4], mat.metal);
-const desk = box(room, [12, 1.2, 2.4], [0, -3.9, 1.2], mat.dark, [-.15, 0, 0]);
+box(room, [12, 1.2, 2.4], [0, -3.9, 1.2], mat.dark, [-.15, 0, 0]);
 for (let i = 0; i < 5; i++) box(room, [1.8, .75, .08], [-4.2 + i * 2.1, -3.45, 2.38], mat.screen, [-.15, 0, 0]);
 
 const warningLights = [];
@@ -57,7 +56,6 @@ for (const x of [-6.8, -4.5, 4.5, 6.8]) {
 const roomLight = new THREE.HemisphereLight(0x8ea492, 0x020302, .12); scene.add(roomLight);
 const deskLight = new THREE.PointLight(0xb4d0bb, 0, 12, 2); deskLight.position.set(0, -2.5, 3); scene.add(deskLight);
 
-// Living entity outside the station.
 const entity = new THREE.Group();
 entity.position.set(4, -1.3, -31); entity.scale.setScalar(5.3); scene.add(entity);
 const head = new THREE.Group(); head.position.set(0, 2.1, 0); entity.add(head);
@@ -99,12 +97,13 @@ const ui = {
   phase: document.querySelector('.phase'), status: document.querySelector('.status'), entity: document.querySelector('.entity-value'),
   radar: document.querySelector('.radar'), radarLock: document.querySelector('.radar-lock'), radarTarget: document.querySelector('.radar-target'),
   trackValue: document.querySelector('.track-value'), trackConsole: document.querySelector('.track-console'),
-  contactPad: document.querySelector('.contact-pad'), missions: [...document.querySelectorAll('.mission')],
+  contactPad: document.querySelector('.contact-pad'), acknowledge: document.querySelector('.acknowledge'),
+  missions: [...document.querySelectorAll('.mission')],
 };
 const state = {
-  entered: false, power: 0, signalLock: 0, leverDragging: false, radarDragging: false,
-  pointerX: 0, pointerY: 0, audio: null, tracking: false, tracked: false, contact: false,
-  targetX: 72, targetY: 34, reticleX: 30, reticleY: 68, trackQuality: 0, hold: 0,
+  entered: false, power: 0, signalLock: 0, leverDragging: false, radarDragging: false, contactHolding: false,
+  pointerX: 0, pointerY: 0, audio: null, tracking: false, tracked: false, contact: false, acknowledged: false,
+  targetX: 72, targetY: 34, reticleX: 30, reticleY: 68, trackQuality: 0, hold: 0, paused: false,
 };
 
 const initAudio = () => {
@@ -112,7 +111,7 @@ const initAudio = () => {
   state.audio.resume();
 };
 const tone = (frequency = 70, duration = .4, gain = .04, type = 'sine') => {
-  if (!state.audio) return;
+  if (!state.audio || state.audio.state !== 'running') return;
   const oscillator = state.audio.createOscillator(); const volume = state.audio.createGain();
   oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, state.audio.currentTime);
   volume.gain.setValueAtTime(gain, state.audio.currentTime); volume.gain.exponentialRampToValueAtTime(.001, state.audio.currentTime + duration);
@@ -128,7 +127,8 @@ setTimeout(() => {
 }, 900);
 
 ui.begin.addEventListener('click', () => {
-  initAudio(); state.entered = true;
+  if (state.entered) return;
+  initAudio(); state.entered = true; ui.station.setAttribute('aria-hidden', 'false');
   gsap.timeline().to('.calibration>*', { opacity: 0, y: -20, stagger: .04, duration: .35 })
     .to(ui.calibration, { opacity: 0, duration: .55, onComplete: () => ui.calibration.remove() }, .15)
     .set(ui.station, { visibility: 'visible' }, .2).to(ui.station, { opacity: 1, duration: .65 }, .25);
@@ -144,18 +144,29 @@ const updatePower = (value) => {
   renderer.toneMappingExposure = .72 + state.power * .006;
   if (state.power >= 96 && !document.body.classList.contains('powered')) {
     document.body.classList.add('powered'); ui.phase.textContent = '02 // TUNE SIGNAL'; ui.status.textContent = 'CARRIER DETECTED';
-    tone(95, .9, .1, 'sawtooth'); flash(); setTimeout(() => setMission(1), 650);
+    tone(95, .9, .1, 'sawtooth'); flash(); gsap.delayedCall(.65, () => setMission(1));
   }
 };
-const leverMove = (event) => {
-  if (!state.leverDragging) return;
-  const rect = ui.lever.getBoundingClientRect(); updatePower(((event.clientY - rect.top) / rect.height) * 100);
+const stopLeverDrag = (event) => {
+  state.leverDragging = false;
+  if (event?.pointerId != null && ui.handle.hasPointerCapture?.(event.pointerId)) ui.handle.releasePointerCapture(event.pointerId);
 };
 ui.handle.addEventListener('pointerdown', (event) => {
   state.leverDragging = true; ui.handle.setPointerCapture(event.pointerId); initAudio(); tone(55, .25, .04, 'square');
 });
-ui.handle.addEventListener('pointermove', leverMove);
-ui.handle.addEventListener('pointerup', (event) => { state.leverDragging = false; ui.handle.releasePointerCapture(event.pointerId); });
+ui.handle.addEventListener('pointermove', (event) => {
+  if (!state.leverDragging) return;
+  const rect = ui.lever.getBoundingClientRect(); updatePower(((event.clientY - rect.top) / rect.height) * 100);
+});
+ui.handle.addEventListener('pointerup', stopLeverDrag);
+ui.handle.addEventListener('pointercancel', stopLeverDrag);
+ui.handle.addEventListener('lostpointercapture', () => { state.leverDragging = false; });
+ui.handle.addEventListener('keydown', (event) => {
+  const step = event.shiftKey ? 10 : 5;
+  const keys = { ArrowDown: step, ArrowRight: step, ArrowUp: -step, ArrowLeft: -step, Home: -state.power, End: 100 - state.power };
+  if (!(event.key in keys)) return;
+  event.preventDefault(); updatePower(state.power + keys[event.key]);
+});
 
 ui.tuner.addEventListener('input', (event) => {
   const value = +event.target.value; const target = 73; const distance = Math.abs(value - target);
@@ -168,7 +179,7 @@ ui.tuner.addEventListener('input', (event) => {
   if (state.signalLock > 97 && !state.tracking) {
     state.tracking = true; document.body.classList.add('locked');
     ui.phase.textContent = '03 // TRACK CONTACT'; ui.status.textContent = 'OBJECT MOVING'; ui.entity.textContent = 'UNRESOLVED';
-    tone(46, 1.8, .12, 'sawtooth'); flash(); setTimeout(() => setMission(2), 750);
+    tone(46, 1.8, .12, 'sawtooth'); flash(); gsap.delayedCall(.75, () => setMission(2));
   }
 });
 
@@ -179,53 +190,64 @@ const updateRadarReticle = (event) => {
   state.reticleY = THREE.MathUtils.clamp(((event.clientY - rect.top) / rect.height) * 100, 4, 96);
   ui.radarLock.style.left = `${state.reticleX}%`; ui.radarLock.style.top = `${state.reticleY}%`;
 };
+const stopRadarDrag = (event) => {
+  state.radarDragging = false;
+  if (event?.pointerId != null && ui.radarLock.hasPointerCapture?.(event.pointerId)) ui.radarLock.releasePointerCapture(event.pointerId);
+};
 ui.radarLock.addEventListener('pointerdown', (event) => {
   state.radarDragging = true; ui.radarLock.setPointerCapture(event.pointerId); initAudio();
 });
 ui.radarLock.addEventListener('pointermove', updateRadarReticle);
-ui.radarLock.addEventListener('pointerup', (event) => { state.radarDragging = false; ui.radarLock.releasePointerCapture(event.pointerId); });
+ui.radarLock.addEventListener('pointerup', stopRadarDrag);
+ui.radarLock.addEventListener('pointercancel', stopRadarDrag);
+ui.radarLock.addEventListener('lostpointercapture', () => { state.radarDragging = false; });
 
 const completeTracking = () => {
   if (state.tracked) return;
   state.tracked = true; document.body.classList.add('tracked', 'contact');
   ui.phase.textContent = '04 // FIRST CONTACT'; ui.status.textContent = 'VISUAL LOCK'; ui.entity.textContent = 'LIVING';
   tone(38, 2, .14, 'sawtooth'); flash();
-  gsap.to(entity.position, { x: 1.6, z: -13.8, duration: 2.5, ease: 'power3.out' });
-  gsap.to(arm.rotation, { z: -.1, x: -.32, duration: 2.2, ease: 'power3.inOut' });
-  setTimeout(() => setMission(3), 1500);
+  gsap.timeline({ onComplete: () => setMission(3) })
+    .to(entity.position, { x: 1.6, z: -13.8, duration: 2.5, ease: 'power3.out' })
+    .to(arm.rotation, { z: -.1, x: -.32, duration: 2.2, ease: 'power3.inOut' }, 0);
 };
 
 let contactTimer;
-const cancelContactHold = () => {
-  clearInterval(contactTimer);
+const cancelContactHold = (event) => {
+  clearInterval(contactTimer); state.contactHolding = false;
+  if (event?.pointerId != null && ui.contactPad.hasPointerCapture?.(event.pointerId)) ui.contactPad.releasePointerCapture(event.pointerId);
   if (!state.contact) {
     state.hold = 0; document.documentElement.style.setProperty('--contact', '0');
     ui.contactPad.querySelector('span').textContent = 'PLACE HAND HERE';
+    handLight.intensity = 0; bloom.strength = mobile ? .35 : .55;
   }
 };
-ui.contactPad.addEventListener('pointerdown', () => {
-  if (state.contact) return;
-  initAudio(); state.hold = 0; ui.contactPad.setPointerCapture?.(1);
+ui.contactPad.addEventListener('pointerdown', (event) => {
+  if (state.contact || state.contactHolding) return;
+  initAudio(); clearInterval(contactTimer); state.contactHolding = true; state.hold = 0;
+  ui.contactPad.setPointerCapture(event.pointerId);
   contactTimer = setInterval(() => {
     state.hold = Math.min(100, state.hold + 4);
     document.documentElement.style.setProperty('--contact', state.hold.toFixed(0));
     ui.contactPad.querySelector('span').textContent = `SYNCHRONIZING ${state.hold}%`;
     handLight.intensity = state.hold * .18; bloom.strength = (mobile ? .35 : .55) + state.hold * .009;
     if (state.hold >= 100) {
-      clearInterval(contactTimer); state.contact = true; document.body.classList.add('synchronized');
+      clearInterval(contactTimer); state.contactHolding = false; state.contact = true; document.body.classList.add('synchronized');
       ui.phase.textContent = '05 // CONTACT'; ui.status.textContent = 'SYNCHRONIZED'; ui.contactPad.querySelector('span').textContent = 'CONTACT ESTABLISHED';
       tone(76, 1.8, .11, 'sine'); flash();
-      gsap.to(arm.position, { x: .5, y: .15, z: 1.4, duration: 1.2, ease: 'power3.out' });
-      gsap.to(head.rotation, { y: -.12, duration: .55, yoyo: true, repeat: 1 });
-      setTimeout(() => setMission(4), 1100);
+      gsap.timeline({ onComplete: () => setMission(4) })
+        .to(arm.position, { x: .5, y: .15, z: 1.4, duration: 1.2, ease: 'power3.out' })
+        .to(head.rotation, { y: -.12, duration: .55, yoyo: true, repeat: 1 }, 0);
     }
   }, 45);
 });
 ui.contactPad.addEventListener('pointerup', cancelContactHold);
-ui.contactPad.addEventListener('pointerleave', cancelContactHold);
+ui.contactPad.addEventListener('pointercancel', cancelContactHold);
+ui.contactPad.addEventListener('lostpointercapture', () => cancelContactHold());
 
-const acknowledge = document.querySelector('.acknowledge');
-acknowledge.addEventListener('click', () => {
+ui.acknowledge.addEventListener('click', () => {
+  if (state.acknowledged) return;
+  state.acknowledged = true; ui.acknowledge.disabled = true;
   tone(82, 1.5, .09, 'sine'); ui.status.textContent = 'IT ACKNOWLEDGED YOU';
   gsap.timeline().to(head.rotation, { y: -.2, x: .06, duration: .55 }).to(head.rotation, { y: 0, x: 0, duration: .8, ease: 'power2.out' });
   gsap.to(eyeLight, { intensity: 32, duration: .35, yoyo: true, repeat: 1 });
@@ -237,30 +259,40 @@ addEventListener('pointermove', (event) => {
   state.pointerY = -(event.clientY / innerHeight) * 2 + 1;
 });
 
+document.addEventListener('visibilitychange', () => {
+  state.paused = document.hidden;
+  if (document.hidden) state.audio?.suspend(); else { state.audio?.resume(); clock.getDelta(); }
+});
+
 const clock = new THREE.Clock();
 function render() {
-  const time = clock.getElapsedTime();
-  dust.rotation.y = time * .002; dust.position.y = Math.sin(time * .2) * .08;
-  if (state.tracking && !state.tracked) {
-    state.targetX = 50 + Math.sin(time * .73) * 30;
-    state.targetY = 50 + Math.cos(time * .91) * 27;
-    ui.radarTarget.style.left = `${state.targetX}%`; ui.radarTarget.style.top = `${state.targetY}%`;
-    const distance = Math.hypot(state.targetX - state.reticleX, state.targetY - state.reticleY);
-    const quality = Math.max(0, 100 - distance * 4.2);
-    state.trackQuality += (quality - state.trackQuality) * .12;
-    if (state.trackQuality > 78) state.trackQuality = Math.min(100, state.trackQuality + .42);
-    else state.trackQuality = Math.max(0, state.trackQuality - .16);
-    ui.trackValue.textContent = `${Math.round(state.trackQuality)}%`; ui.trackConsole.textContent = `${Math.round(state.trackQuality)}%`;
-    document.documentElement.style.setProperty('--track', state.trackQuality.toFixed(0));
-    if (state.trackQuality >= 99.5) completeTracking();
+  const delta = Math.min(clock.getDelta(), .05);
+  const time = clock.elapsedTime;
+  if (!state.paused) {
+    dust.rotation.y = time * .002; dust.position.y = Math.sin(time * .2) * .08;
+    if (state.tracking && !state.tracked) {
+      state.targetX = 50 + Math.sin(time * .73) * 30;
+      state.targetY = 50 + Math.cos(time * .91) * 27;
+      ui.radarTarget.style.left = `${state.targetX}%`; ui.radarTarget.style.top = `${state.targetY}%`;
+      const distance = Math.hypot(state.targetX - state.reticleX, state.targetY - state.reticleY);
+      const quality = Math.max(0, 100 - distance * 4.2);
+      const smoothing = 1 - Math.exp(-8 * delta);
+      state.trackQuality += (quality - state.trackQuality) * smoothing;
+      state.trackQuality += (state.trackQuality > 78 ? 25 : -10) * delta;
+      state.trackQuality = THREE.MathUtils.clamp(state.trackQuality, 0, 100);
+      ui.trackValue.textContent = `${Math.round(state.trackQuality)}%`; ui.trackConsole.textContent = `${Math.round(state.trackQuality)}%`;
+      document.documentElement.style.setProperty('--track', state.trackQuality.toFixed(0));
+      if (state.trackQuality >= 99.5) completeTracking();
+    }
+    if (state.tracked) {
+      head.rotation.y += ((state.pointerX * .16) - head.rotation.y) * (1 - Math.exp(-2.2 * delta));
+      head.rotation.x += ((-state.pointerY * .08) - head.rotation.x) * (1 - Math.exp(-2.2 * delta));
+      entity.position.y = -1.3 + Math.sin(time * .7) * .03;
+      eyeL.scale.x = eyeR.scale.x = 1 + Math.sin(time * 3.5) * .04;
+    }
+    composer.render();
   }
-  if (state.tracked) {
-    head.rotation.y += ((state.pointerX * .16) - head.rotation.y) * .035;
-    head.rotation.x += ((-state.pointerY * .08) - head.rotation.x) * .035;
-    entity.position.y = -1.3 + Math.sin(time * .7) * .03;
-    eyeL.scale.x = eyeR.scale.x = 1 + Math.sin(time * 3.5) * .04;
-  }
-  composer.render(); requestAnimationFrame(render);
+  requestAnimationFrame(render);
 }
 render();
 
