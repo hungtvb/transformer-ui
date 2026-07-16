@@ -26,3 +26,7 @@ npm run preview
 ```
 
 The Vite base path is configured for the `transformer-ui` GitHub Pages project site.
+
+## Game design documentation
+
+- [Project Titan — Game Design & Development Rules](docs/PROJECT_TITAN_GAME_DESIGN_AND_RULES.md)
